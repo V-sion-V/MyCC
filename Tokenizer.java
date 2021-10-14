@@ -47,7 +47,7 @@ public class Tokenizer {
     }
 
     public String getToken() {
-        String ret;/*dsada*/
+        String ret;
         if (in.length() > 0) {
             Matcher identMatcher = ident.matcher(in);
             Matcher numberMatcher = number.matcher(in);
@@ -58,6 +58,7 @@ public class Tokenizer {
                 in = sc.next();
                 ret = getToken();
             } else if(commentL.matcher(in).lookingAt()){
+                in = in.substring(2);
                 Matcher temp = commentR.matcher(in);
                 if(temp.find()){
                     in = in.substring(temp.end());
