@@ -1,6 +1,7 @@
 public class Syntax {
     Tokenizer in = new Tokenizer();
     String token;
+    String out = "";
 
     public static void main(String[] args) {
         Syntax sy = new Syntax();
@@ -9,11 +10,12 @@ public class Syntax {
 
         sy.token = sy.in.getToken();
         sy.compUnit();
+        System.out.println(sy.out);
         System.exit(0);
     }
 
     void compUnit() {
-        System.out.print("define ");
+        out+="define ";
         if(token.equals("Int")) {
             funcDef();
         } else {
@@ -22,16 +24,16 @@ public class Syntax {
     }
 
     void funcDef() {
-        System.out.print("dso_local ");
+        out+="dso_local ";
         if(token.equals("Int")) {
             funcType();
             if(token.startsWith("Ident(")) {
                 ident();
                 if (token.equals("LPar")) {
-                    System.out.print("(");
+                    out+="(";
                     token = in.getToken();
                     if (token.equals("RPar")) {
-                        System.out.print(") ");
+                        out+=") ";
                         token = in.getToken();
                         block();
                     } else {
@@ -50,7 +52,7 @@ public class Syntax {
 
     void funcType() {
         if(token.equals("Int")) {
-            System.out.print(" i32 ");
+            out+= "i32 ";
             token = in.getToken();
         } else {
             System.exit(1);
@@ -59,7 +61,7 @@ public class Syntax {
 
     void ident() {
         if(token.matches("Ident\\(main\\)")) {
-            System.out.print(" @main ");
+            out+="@main ";
             token = in.getToken();
         } else {
             System.exit(1);
@@ -68,12 +70,12 @@ public class Syntax {
 
     void block() {
         if(token.equals("LBrace")) {
-            System.out.println("{");
+            out+="{\n";
             token = in.getToken();
             if(token.equals("Return")) {
                 stmt();
                 if (token.equals("RBrace")) {
-                    System.out.println("}");
+                    out+="}\n";
                     token = in.getToken();
                 } else {
                     System.exit(1);
@@ -88,13 +90,13 @@ public class Syntax {
 
     void stmt() {
         if(token.equals("Return")) {
-            System.out.print("ret ");
+            out+= "ret ";
             token = in.getToken();
             if(token.matches("Number\\([0-9]*\\)")) {
-                System.out.print("i32 "+ token.substring(7,token.length()-1));
+                out += "i32 "+ token.substring(7,token.length()-1);
                 token = in.getToken();
                 if(token.equals("Semicolon")) {
-                    System.out.println();
+                    out+="\n";
                     token = in.getToken();
                 } else {
                     System.exit(1);
