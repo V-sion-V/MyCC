@@ -10,6 +10,7 @@ public class Tokenizer {
     private final Pattern ident = Pattern.compile("[a-zA-Z_][a-zA-Z_0-9]*");
     private final Pattern number = Pattern.compile("0[xX][0-9a-fA-F]+|[1-9][0-9]*|0[0-7]*");
     private final Pattern separator = Pattern.compile("<=|>=|==|!=|&&|\\|\\||=|;|,|\\(|\\)|\\[|]|\\{|}|\\+|-|\\*|/|%|!|<|>");
+
     private final Pattern inLineComment = Pattern.compile("//");
     private final Pattern commentL = Pattern.compile("/\\*");
     private final Pattern commentR = Pattern.compile("\\*/");
@@ -59,33 +60,33 @@ public class Tokenizer {
         return separator;
     }
 
-    public Token getToken() {
+    public Token nextToken() {
         Token ret;
-        if (in.length() > 0) {
+        if (!in.isEmpty()) {
             Matcher identMatcher = ident.matcher(in);
             Matcher numberMatcher = number.matcher(in);
             Matcher separatorMatcher = separator.matcher(in);
             if(inLineComment.matcher(in).lookingAt()) {
                 in = sc.nextLine();
                 in = sc.next();
-                ret = getToken();
+                ret = nextToken();
             } else if(commentL.matcher(in).lookingAt()){
                 in = in.substring(2);
                 Matcher temp = commentR.matcher(in);
                 if(temp.find()){
                     in = in.substring(temp.end());
-                    return getToken();
+                    return nextToken();
                 }
                 while(sc.hasNext()) {
                     in = sc.next();
                     temp = commentR.matcher(in);
                     if(temp.find()){
                         in = in.substring(temp.end());
-                        return getToken();
+                        return nextToken();
                     }
                 }
                 ret = new Token(Token.EOF);
-            } else if (identMatcher.lookingAt()) {
+            } else if (identMatcher.lookingAt()) { //
                 if (keyword.containsKey(identMatcher.group()))
                     ret = new Token(keyword.get(identMatcher.group()));
                 else
@@ -111,7 +112,7 @@ public class Tokenizer {
             return ret;
         } else if (sc.hasNext()) {
             in = sc.next();
-            return getToken();
+            return nextToken();
         } else {
             return new Token(Token.EOF);
         }
