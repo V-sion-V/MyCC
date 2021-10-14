@@ -11,7 +11,7 @@ public class Token {
         this(type,"");
     }
 
-    Token(int type,String content) {
+    Token(int type, String content) {
         this.type = type;
         this.content = content;
     }

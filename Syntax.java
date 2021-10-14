@@ -12,8 +12,8 @@ public class Syntax {
     }
 
     void compUnit() {
-        out+="define ";
-        if(token.type == Token.INT) {
+        out += "define ";
+        if (token.type == Token.INT) {
             funcDef();
         } else {
             System.exit(1);
@@ -21,16 +21,16 @@ public class Syntax {
     }
 
     void funcDef() {
-        out+="dso_local ";
-        if(token.type == Token.INT) {
+        out += "dso_local ";
+        if (token.type == Token.INT) {
             funcType();
-            if(token.type == Token.IDT) {
+            if (token.type == Token.IDT) {
                 ident();
                 if (token.type == Token.LP) {
-                    out+="(";
+                    out += "(";
                     token = in.nextToken();
                     if (token.type == Token.RP) {
-                        out+=") ";
+                        out += ") ";
                         token = in.nextToken();
                         block();
                     } else {
@@ -48,8 +48,8 @@ public class Syntax {
     }
 
     void funcType() {
-        if(token.type == Token.INT) {
-            out+= "i32 ";
+        if (token.type == Token.INT) {
+            out += "i32 ";
             token = in.nextToken();
         } else {
             System.exit(1);
@@ -57,8 +57,8 @@ public class Syntax {
     }
 
     void ident() {
-        if(token.type == Token.IDT && token.content.equals("main")) {
-            out+="@main ";
+        if (token.type == Token.IDT && token.content.equals("main")) {
+            out += "@main ";
             token = in.nextToken();
         } else {
             System.exit(1);
@@ -66,13 +66,13 @@ public class Syntax {
     }
 
     void block() {
-        if(token.type == Token.LB) {
-            out+="{\n";
+        if (token.type == Token.LB) {
+            out += "{\n";
             token = in.nextToken();
-            if(token.type == Token.RETURN) {
+            if (token.type == Token.RETURN) {
                 stmt();
                 if (token.type == Token.RB) {
-                    out+="}\n";
+                    out += "}\n";
                     token = in.nextToken();
                 } else {
                     System.exit(1);
@@ -86,14 +86,14 @@ public class Syntax {
     }
 
     void stmt() {
-        if(token.type == Token.RETURN) {
-            out+= "ret ";
+        if (token.type == Token.RETURN) {
+            out += "ret ";
             token = in.nextToken();
-            if(token.type == Token.NUM) {
-                out += "i32 "+ token.content;
+            if (token.type == Token.NUM) {
+                out += "i32 " + token.content;
                 token = in.nextToken();
-                if(token.type == Token.SEMI) {
-                    out+="\n";
+                if (token.type == Token.SEMI) {
+                    out += "\n";
                     token = in.nextToken();
                 } else {
                     System.exit(1);
