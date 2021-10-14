@@ -58,9 +58,15 @@ public class Tokenizer {
                 in = sc.next();
                 ret = getToken();
             } else if(commentL.matcher(in).lookingAt()){
+                in = in.substring(2);
+                Matcher temp = commentR.matcher(in);
+                if(temp.find()){
+                    in = in.substring(temp.end());
+                    return getToken();
+                }
                 while(sc.hasNext()) {
                     in = sc.next();
-                    Matcher temp = commentR.matcher(in);
+                    temp = commentR.matcher(in);
                     if(temp.find()){
                         in = in.substring(temp.end());
                         return getToken();
