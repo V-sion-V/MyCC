@@ -5,9 +5,6 @@ public class Syntax {
 
     public static void main(String[] args) {
         Syntax sy = new Syntax();
-
-        //while(true) System.out.println(sy.in.getToken());
-
         sy.token = sy.in.nextToken();
         sy.compUnit();
         System.out.println(sy.out);
