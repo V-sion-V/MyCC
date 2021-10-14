@@ -1,13 +1,13 @@
-public class Syntax {
+public class Parser {
     Tokenizer in = new Tokenizer();
     Token token;
     String out = "";
 
     public static void main(String[] args) {
-        Syntax sy = new Syntax();
-        sy.token = sy.in.nextToken();
-        sy.compUnit();
-        System.out.println(sy.out);
+        Parser parser = new Parser();
+        parser.token = parser.in.nextToken();
+        parser.compUnit();
+        System.out.println(parser.out);
         System.exit(0);
     }
 
