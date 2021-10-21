@@ -7,7 +7,7 @@ public class SyntaxTree extends Token {
     UnaryOp = 149, FuncRParams = 150, MulExp = 151, AddExp = 152, RelExp = 153, EqExp = 154, LAndExp = 155,
     LOrExp = 156, ConstExp = 157;
     private ArrayList<SyntaxTree> child = null;
-    public int value = 1;
+    public int value = 0;
 
     SyntaxTree(int type) {
         super(type);
@@ -20,7 +20,7 @@ public class SyntaxTree extends Token {
     }
 
     private void setValue(){
-        if(type == PLUS) value = 1;
+        if(type == MulExp || type == UnaryExp || type == PLUS) value = 1;
         else if(type == MINUS) value = -1;
         else if(type == NUM) value = Integer.parseInt(content);
     }
