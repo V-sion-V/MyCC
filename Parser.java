@@ -93,9 +93,11 @@ public class Parser {
             token = in.nextToken();
             temp = exp();
             ret.push(temp);
+
             //calc
             out += "i32 "+temp.value +" ";
             //
+
             if (token.type == Token.SEMI) {
                 out += "\n";
                 ret.push(new SyntaxTree(token));
@@ -117,6 +119,7 @@ public class Parser {
         //calc
         ret.value = temp.value;
         //
+
         ret.push(temp);
         return ret;
     }
@@ -125,27 +128,35 @@ public class Parser {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.AddExp);
         SyntaxTree temp;
         temp = mulExp();
+
         //calc
         ret.value = temp.value;
         //
+
         ret.push(temp);
         while(token.type == Token.PLUS || token.type == Token.MINUS) {
             ret.push(new SyntaxTree(token));
+
             //calc
             if(token.type == Token.PLUS) {
                 //
+
                 token = in.nextToken();
                 temp = mulExp();
+
                 //calc
                 ret.value += temp.value;
             } else {
                 //
+
                 token = in.nextToken();
                 temp = mulExp();
+
                 //calc
                 ret.value -= temp.value;
             }
             //
+
             ret.push(temp);
         }
         return ret;
@@ -155,33 +166,43 @@ public class Parser {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.MulExp);
         SyntaxTree temp;
         temp = unaryExp();
+
         //calc
         ret.value = temp.value;
         //
+
         ret.push(temp);
         while(token.type == Token.MULT || token.type == Token.DIV || token.type == Token.MODE) {
             ret.push(new SyntaxTree(token));
+
             //calc
             if(token.type == Token.MULT) {
                 //
+
                 token = in.nextToken();
                 temp = unaryExp();
+
                 //calc
                 ret.value *= temp.value;
             } else if(token.type == Token.DIV) {
                 //
+
                 token = in.nextToken();
                 temp = unaryExp();
+
                 //calc
                 ret.value /= temp.value;
             } else {
                 //
+
                 token = in.nextToken();
                 temp = unaryExp();
+
                 //calc
                 ret.value %= temp.value;
             }
             //
+
             ret.push(temp);
         }
         return ret;
@@ -194,9 +215,11 @@ public class Parser {
             token = in.nextToken();
         }
         ret.push(primaryExp());
+
         //calc
         for(SyntaxTree i : ret.getChild()) ret.value *= i.value;
         //
+
         return ret;
     }
 
@@ -205,16 +228,20 @@ public class Parser {
         if(token.type == Token.NUM) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
+
             //cal
             ret.value = ret.getChild().get(0).value;
             //
+
         } else if (token.type == Token.LP) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
             ret.push(exp());
+
             //cal
             ret.value = ret.getChild().get(1).value;
             //
+
             if(token.type == Token.RP) {
                 ret.push(new SyntaxTree(token));
                 token = in.nextToken();
@@ -224,7 +251,6 @@ public class Parser {
         } else {
             System.exit(1);
         }
-
         return ret;
     }
 }
