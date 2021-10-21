@@ -70,6 +70,7 @@ public class Parser {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
             ret.push(stmt());
+
             if (token.type == Token.RB) {
                 out += "}\n";
                 ret.push(new SyntaxTree(token));
