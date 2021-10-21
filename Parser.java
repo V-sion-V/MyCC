@@ -85,11 +85,16 @@ public class Parser {
 
     public SyntaxTree stmt() {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.Stmt);
+        SyntaxTree temp;
         if (token.type == Token.RETURN) {
             out += "ret ";
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
-            ret.push(exp());
+            temp = exp();
+            ret.push(temp);
+            //calc
+            out += temp.value +" ";
+            //
             if (token.type == Token.SEMI) {
                 out += "\n";
                 ret.push(new SyntaxTree(token));
@@ -105,8 +110,13 @@ public class Parser {
 
     SyntaxTree exp() {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.Exp);
-        ret.push(addExp());
-        out += ret.getChild().get(0).value + " ";
+        SyntaxTree temp;
+        temp = addExp();
+
+        //calc
+        ret.value = temp.value;
+        //
+        ret.push(temp);
         return ret;
     }
 
@@ -200,7 +210,7 @@ public class Parser {
         } else if (token.type == Token.LP) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
-            ret.push(addExp());
+            ret.push(exp());
             //cal
             ret.value = ret.getChild().get(1).value;
             //

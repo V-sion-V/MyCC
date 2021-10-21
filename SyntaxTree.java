@@ -20,7 +20,7 @@ public class SyntaxTree extends Token {
     }
 
     private void setValue(){
-        if(type == MulExp || type == UnaryExp || type == PLUS) value = 1;
+        if(type == PLUS) value = 1;
         else if(type == MINUS) value = -1;
         else if(type == NUM) value = Integer.parseInt(content);
     }

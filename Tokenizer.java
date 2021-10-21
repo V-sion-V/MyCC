@@ -94,7 +94,7 @@ public class Tokenizer {
                 in = in.substring(identMatcher.end());
             } else if (numberMatcher.lookingAt()) {
                 int number;
-                if (numberMatcher.group().startsWith("0x"))
+                if (numberMatcher.group().startsWith("0x")||numberMatcher.group().startsWith("0X"))
                     number = Integer.parseInt(numberMatcher.group().substring(2), 16);
                 else if (numberMatcher.group().startsWith("0"))
                     number = Integer.parseInt(numberMatcher.group(), 8);
