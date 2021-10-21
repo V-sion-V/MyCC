@@ -94,7 +94,7 @@ public class Parser {
             temp = exp();
             ret.push(temp);
             //calc
-            out += temp.value +" ";
+            out += "i32 "+temp.value +" ";
             //
             if (token.type == Token.SEMI) {
                 out += "\n";
