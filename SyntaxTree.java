@@ -7,7 +7,7 @@ public class SyntaxTree extends Token {
     UnaryOp = 149, FuncRParams = 150, MulExp = 151, AddExp = 152, RelExp = 153, EqExp = 154, LAndExp = 155,
     LOrExp = 156, ConstExp = 157;
     private ArrayList<SyntaxTree> child = null;
-    public int value = 0;
+    public int value = 1;
 
     SyntaxTree(int type) {
         super(type);
