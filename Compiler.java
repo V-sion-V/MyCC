@@ -31,8 +31,9 @@ public class Compiler {
     public void compile() {
         SyntaxTree syntaxTree = parser.getSyntaxTree();
         SyntaxTree ele = syntaxTree.get(0);
+        String body = funcDef(ele);
         declSysFunc();
-        System.out.println(funcDef(ele));
+        System.out.println(body);
     }
 
     private String funcDef(SyntaxTree tree) {
@@ -185,7 +186,7 @@ public class Compiler {
                 Symbol temp = currentList.declareNewTemp();
                 ExpReturnMsg param = expToMultiIns(tree.get(2).get(0),out);
                 out.append("call void @putint(i32 ").append(param).append(")").append('\n');
-                usedFunction[0]=true;
+                usedFunction[2]=true;
                 return new ExpReturnMsg(0);
                 /**/
             } else {
