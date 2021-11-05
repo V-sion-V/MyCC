@@ -181,26 +181,31 @@ public class Compiler {
         } else if (tree.type == SyntaxTree.UnaryExp) {
             if(tree.get(tree.getWidth()-1).type == Token.RP) {
                 /**/
-                if(tree.get(0).content.equals("getint")) {
-                    Symbol temp = currentList.declareNewTemp();
-                    out.append(temp).append(" = call i32 @getint()").append('\n');
-                    usedFunction[0]=true;
-                    return new ExpReturnMsg(temp);
-                } else if(tree.get(0).content.equals("getch")) {
-                    Symbol temp = currentList.declareNewTemp();
-                    out.append(temp).append(" = call i32 @getch()").append('\n');
-                    usedFunction[1]=true;
-                    return new ExpReturnMsg(temp);
-                } else if(tree.get(0).content.equals("putint")) {
-                    ExpReturnMsg param = expToMultiIns(tree.get(2).get(0),out);
-                    out.append("call void @putint(i32 ").append(param).append(")").append('\n');
-                    usedFunction[2]=true;
-                    return new ExpReturnMsg(0);
-                } else if(tree.get(0).content.equals("putch")){
-                    ExpReturnMsg param = expToMultiIns(tree.get(2).get(0),out);
-                    out.append("call void @putch(i32 ").append(param).append(")").append('\n');
-                    usedFunction[3]=true;
-                    return new ExpReturnMsg(0);
+                switch (tree.get(0).content) {
+                    case "getint" -> {
+                        Symbol temp = currentList.declareNewTemp();
+                        out.append(temp).append(" = call i32 @getint()").append('\n');
+                        usedFunction[0] = true;
+                        return new ExpReturnMsg(temp);
+                    }
+                    case "getch" -> {
+                        Symbol temp = currentList.declareNewTemp();
+                        out.append(temp).append(" = call i32 @getch()").append('\n');
+                        usedFunction[1] = true;
+                        return new ExpReturnMsg(temp);
+                    }
+                    case "putint" -> {
+                        ExpReturnMsg param = expToMultiIns(tree.get(2).get(0), out);
+                        out.append("call void @putint(i32 ").append(param).append(")").append('\n');
+                        usedFunction[2] = true;
+                        return new ExpReturnMsg(0);
+                    }
+                    case "putch" -> {
+                        ExpReturnMsg param = expToMultiIns(tree.get(2).get(0), out);
+                        out.append("call void @putch(i32 ").append(param).append(")").append('\n');
+                        usedFunction[3] = true;
+                        return new ExpReturnMsg(0);
+                    }
                 }
                 /**/
             } else {
@@ -232,7 +237,7 @@ public class Compiler {
                     return new ExpReturnMsg(symbol.constValue);
                 } else if(symbol != null) {
                     Symbol temp = currentList.declareNewTemp();
-                    out.append(temp).append(" = load i32, i32* ").append(symbol).append('\n');;
+                    out.append(temp).append(" = load i32, i32* ").append(symbol).append('\n');
                     return new ExpReturnMsg(temp);
                 } else {
                     err(tree);
