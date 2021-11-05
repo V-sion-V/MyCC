@@ -18,14 +18,12 @@ public class Compiler {
     }
 
     private void declSysFunc() {
-        /**/
         String[] func={"declare i32 @getint()","declare i32 @getch()","declare void @putint(i32)","declare void @putch(i32)"};
         for(int i = 0; i < usedFunction.length; i++) {
             if(usedFunction[i]) {
                 System.out.println(func[i]);
             }
         }
-        /**/
     }
 
     public void compile() {
@@ -185,12 +183,12 @@ public class Compiler {
                 /**/
                 if(tree.get(0).content.equals("getint")) {
                     Symbol temp = currentList.declareNewTemp();
-                    out.append(temp).append(" = call void @getch()").append('\n');
+                    out.append(temp).append(" = call i32 @getint()").append('\n');
                     usedFunction[0]=true;
                     return new ExpReturnMsg(temp);
                 } else if(tree.get(0).content.equals("getch")) {
                     Symbol temp = currentList.declareNewTemp();
-                    out.append(temp).append(" = call void @getch()").append('\n');
+                    out.append(temp).append(" = call i32 @getch()").append('\n');
                     usedFunction[1]=true;
                     return new ExpReturnMsg(temp);
                 } else if(tree.get(0).content.equals("putint")) {
