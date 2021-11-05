@@ -8,6 +8,7 @@ public class Compiler {
     public static void main(String[] args) {
         Compiler compiler = new Compiler();
         compiler.compile();
+        System.exit(0);
     }
 
     private void err(SyntaxTree tree) {
