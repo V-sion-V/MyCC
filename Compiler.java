@@ -184,7 +184,7 @@ public class Compiler {
                 /**/
                 Symbol temp = currentList.declareNewTemp();
                 ExpReturnMsg param = expToMultiIns(tree.get(2).get(0),out);
-                out.append("call void @putint(").append(param).append(")").append('\n');
+                out.append("call void @putint(i32 ").append(param).append(")").append('\n');
                 usedFunction[0]=true;
                 return new ExpReturnMsg(0);
                 /**/
