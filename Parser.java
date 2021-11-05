@@ -4,7 +4,7 @@ public class Parser {
 
     private void err() {
         System.out.println(token.type);
-        System.exit(1);
+        System.exit(5);
     }
 
     public Parser(){
