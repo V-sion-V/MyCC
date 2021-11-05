@@ -17,7 +17,7 @@ public class SymbolList {
     }
 
     Symbol declareNewTemp() {
-        Symbol temp = new Symbol(null,blockName,symbolList.size(),Symbol.TEMP,0);
+        Symbol temp = new Symbol(Symbol.TEMP,blockName,symbolList.size());
         symbolList.add(temp);
         return temp;
     }
@@ -26,7 +26,7 @@ public class SymbolList {
         if(symbolMap.containsKey(ident)){
             return null;
         } else {
-            Symbol temp = new Symbol(ident,blockName,symbolList.size(),Symbol.VAR,0);
+            Symbol temp = new Symbol(Symbol.VAR,blockName,symbolList.size(),ident);
             symbolMap.put(ident,temp);
             symbolList.add(temp);
             return temp;
@@ -35,7 +35,7 @@ public class SymbolList {
 
     void declareNewConst(String ident, int value) {
         if(!symbolMap.containsKey(ident)){
-            Symbol temp = new Symbol(ident,blockName,symbolList.size(),Symbol.CONST,value);
+            Symbol temp = new Symbol(Symbol.CONST,blockName,symbolList.size(),ident,value);
             symbolMap.put(ident,temp);
             symbolList.add(temp);
         }
