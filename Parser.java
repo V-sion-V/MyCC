@@ -3,7 +3,7 @@ public class Parser {
     private Token token;
 
     private void err() {
-        System.out.println(token.type);
+        System.out.println("err:"+token.type);
         System.exit(5);
     }
 
@@ -219,14 +219,8 @@ public class Parser {
         if (token.type == Token.RETURN) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
-            SyntaxTree temp = exp();
-
-            //calc
-            //out += "i32 "+CalculateExpValue.getInstance().getNumberValue(temp) +" ";
-            //
-
-            ret.push(temp);
-        } else if(token.type==Token.IDT){
+            ret.push(exp());
+        } else if(token.type==Token.IDT&&in.getFurtherToken(0).type==Token.ASSIGN){
             ret.push(lVal());
             if(token.type==Token.ASSIGN) {
                 ret.push(new SyntaxTree(token));
@@ -235,11 +229,10 @@ public class Parser {
             } else {
                 err();
             }
-        } else if(token.type!=Token.SEMI){
+        } else if(token.type!=Token.SEMI) {
             ret.push(exp());
         }
-
-        if(token.type==Token.SEMI) {
+        if(token.type == Token.SEMI) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
         } else {
@@ -295,11 +288,41 @@ public class Parser {
 
     private SyntaxTree unaryExp() {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.UnaryExp);
-        while(token.type == Token.PLUS || token.type == Token.MINUS) {
+        if(token.type==Token.IDT && in.getFurtherToken(0).type == Token.LP) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
+            ret.push(new SyntaxTree(token));
+            token = in.nextToken();
+            if(token.type == Token.RP) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+            } else {
+                ret.push(funcRParams());
+                if(token.type == Token.RP) {
+                    ret.push(new SyntaxTree(token));
+                    token = in.nextToken();
+                } else {
+                    err();
+                }
+            }
+        } else {
+            while(token.type == Token.PLUS || token.type == Token.MINUS) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+            }
+            ret.push(primaryExp());
         }
-        ret.push(primaryExp());
+        return ret;
+    }
+
+    private SyntaxTree funcRParams() {
+        SyntaxTree ret = new SyntaxTree(SyntaxTree.FuncRParams);
+        ret.push(exp());
+        while(token.type == Token.COMMA) {
+            ret.push(new SyntaxTree(token));
+            token = in.nextToken();
+            ret.push(exp());
+        }
         return ret;
     }
 

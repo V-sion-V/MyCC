@@ -4,6 +4,7 @@ public class Compiler {
     private final Parser parser = new Parser();
     private final ArrayList<SymbolList> symbolLists = new ArrayList<>();
     private SymbolList currentList = new SymbolList(1);
+    boolean[] usedFunction = {false,false,false,false};
 
     public static void main(String[] args) {
         Compiler compiler = new Compiler();
@@ -16,9 +17,21 @@ public class Compiler {
         System.exit(1);
     }
 
+    private void declSysFunc() {
+        /**/
+        String[] func={"declare i32 @getint()","declare i32 @getch()","declare void @putint(i32)","declare void @putch(i32)"};
+        for(int i = 0; i < usedFunction.length; i++) {
+            if(usedFunction[i]) {
+                System.out.println(func[i]);
+            }
+        }
+        /**/
+    }
+
     public void compile() {
         SyntaxTree syntaxTree = parser.getSyntaxTree();
         SyntaxTree ele = syntaxTree.get(0);
+        declSysFunc();
         System.out.println(funcDef(ele));
     }
 
@@ -55,6 +68,8 @@ public class Compiler {
                 assign(tree,out);
             } else if(tree.get(0).type == SyntaxTree.RETURN) {
                 ret(tree,out);
+            } else if(tree.get(0).type != SyntaxTree.SEMI){
+                expToMultiIns(tree.get(0).get(0),out);
             }
         }
     }
@@ -165,20 +180,31 @@ public class Compiler {
             }
             return last;
         } else if (tree.type == SyntaxTree.UnaryExp) {
-            int sgn = 1;
-            for(int i = 0; i+1< child.size();i++) {
-                if(child.get(i).type == Token.MINUS) {
-                    sgn*=-1;
+            if(tree.get(tree.getWidth()-1).type == Token.RP) {
+                /**/
+                Symbol temp = currentList.declareNewTemp();
+                ExpReturnMsg param = expToMultiIns(tree.get(2).get(0),out);
+                out.append("call void @putint(").append(param).append(")").append('\n');
+                usedFunction[0]=true;
+                return new ExpReturnMsg(0);
+                /**/
+            } else {
+                int sgn = 1;
+                for(int i = 0; i+1< child.size();i++) {
+                    if(child.get(i).type == Token.MINUS) {
+                        sgn*=-1;
+                    }
+                }
+                ExpReturnMsg primary = expToMultiIns(child.get(child.size()-1),out);
+                if(sgn == 1) return primary;
+                else if(primary!=null && primary.symbol == null) return new ExpReturnMsg(-primary.value);
+                else {
+                    Symbol temp = currentList.declareNewTemp();
+                    out.append(temp).append(" = mul i32 -1, ").append(primary).append('\n');
+                    return new ExpReturnMsg(temp);
                 }
             }
-            ExpReturnMsg primary = expToMultiIns(child.get(child.size()-1),out);
-            if(sgn == 1) return primary;
-            else if(primary!=null && primary.symbol == null) return new ExpReturnMsg(-primary.value);
-            else {
-                Symbol temp = currentList.declareNewTemp();
-                out.append(temp).append(" = mul i32 -1, ").append(primary).append('\n');
-                return new ExpReturnMsg(temp);
-            }
+
         } else if(tree.type == SyntaxTree.PrimaryExp) {
             if(child.get(0).type == SyntaxTree.NUM) {
                 return new ExpReturnMsg(Integer.parseInt(child.get(0).content));
