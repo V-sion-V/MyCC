@@ -1,9 +1,10 @@
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Tokenizer {
+public class Lexer {
     private final Scanner sc = new Scanner(System.in);
     private String in = sc.next();
 
@@ -17,6 +18,8 @@ public class Tokenizer {
 
     private final HashMap<String, Integer> keyword = getKeyword();
     private final HashMap<String, Integer> sep = getSep();
+
+    private final LinkedList<Token> tokenBuffer = new LinkedList<>();
 
     private HashMap<String, Integer> getKeyword() {
         HashMap<String, Integer> keyword = new HashMap<>();
@@ -61,6 +64,21 @@ public class Tokenizer {
     }
 
     public Token nextToken() {
+        while(tokenBuffer.size()<6) {
+            tokenBuffer.add(nextTokenInner());
+        }
+        return tokenBuffer.poll();
+    }
+
+    public Token getFurtherToken(int n) {
+        if(n>=0&&n<5) {
+            return tokenBuffer.get(n);
+        } else {
+            return null;
+        }
+    }
+
+    private Token nextTokenInner() {
         Token ret;
         if (!in.isEmpty()) {
             Matcher identMatcher = ident.matcher(in);
@@ -69,20 +87,20 @@ public class Tokenizer {
             if (inLineComment.matcher(in).lookingAt()) {
                 in = sc.nextLine();
                 in = sc.next();
-                ret = nextToken();
+                ret = nextTokenInner();
             } else if (commentL.matcher(in).lookingAt()) {
                 in = in.substring(2);
                 Matcher temp = commentR.matcher(in);
                 if (temp.find()) {
                     in = in.substring(temp.end());
-                    return nextToken();
+                    return nextTokenInner();
                 }
                 while (sc.hasNext()) {
                     in = sc.next();
                     temp = commentR.matcher(in);
                     if (temp.find()) {
                         in = in.substring(temp.end());
-                        return nextToken();
+                        return nextTokenInner();
                     }
                 }
                 ret = new Token(Token.EOF);
@@ -112,7 +130,7 @@ public class Tokenizer {
             return ret;
         } else if (sc.hasNext()) {
             in = sc.next();
-            return nextToken();
+            return nextTokenInner();
         } else {
             return new Token(Token.EOF);
         }
