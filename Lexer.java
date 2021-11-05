@@ -63,6 +63,7 @@ public class Lexer {
         return separator;
     }
 
+    /*
     public Token nextToken() {
         while(tokenBuffer.size()<6) {
             tokenBuffer.add(nextTokenInner());
@@ -78,7 +79,9 @@ public class Lexer {
         }
     }
 
-    private Token nextTokenInner() {
+     */
+
+    public Token nextToken() {
         Token ret;
         if (!in.isEmpty()) {
             Matcher identMatcher = ident.matcher(in);
@@ -87,20 +90,20 @@ public class Lexer {
             if (inLineComment.matcher(in).lookingAt()) {
                 in = sc.nextLine();
                 in = sc.next();
-                ret = nextTokenInner();
+                ret = nextToken();
             } else if (commentL.matcher(in).lookingAt()) {
                 in = in.substring(2);
                 Matcher temp = commentR.matcher(in);
                 if (temp.find()) {
                     in = in.substring(temp.end());
-                    return nextTokenInner();
+                    return nextToken();
                 }
                 while (sc.hasNext()) {
                     in = sc.next();
                     temp = commentR.matcher(in);
                     if (temp.find()) {
                         in = in.substring(temp.end());
-                        return nextTokenInner();
+                        return nextToken();
                     }
                 }
                 ret = new Token(Token.EOF);
@@ -130,7 +133,7 @@ public class Lexer {
             return ret;
         } else if (sc.hasNext()) {
             in = sc.next();
-            return nextTokenInner();
+            return nextToken();
         } else {
             return new Token(Token.EOF);
         }
