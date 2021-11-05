@@ -183,11 +183,27 @@ public class Compiler {
         } else if (tree.type == SyntaxTree.UnaryExp) {
             if(tree.get(tree.getWidth()-1).type == Token.RP) {
                 /**/
-                Symbol temp = currentList.declareNewTemp();
-                ExpReturnMsg param = expToMultiIns(tree.get(2).get(0),out);
-                out.append("call void @putint(i32 ").append(param).append(")").append('\n');
-                usedFunction[2]=true;
-                return new ExpReturnMsg(0);
+                if(tree.get(0).content.equals("getint")) {
+                    Symbol temp = currentList.declareNewTemp();
+                    out.append(temp).append(" = call void @getch()").append('\n');
+                    usedFunction[0]=true;
+                    return new ExpReturnMsg(temp);
+                } else if(tree.get(0).content.equals("getch")) {
+                    Symbol temp = currentList.declareNewTemp();
+                    out.append(temp).append(" = call void @getch()").append('\n');
+                    usedFunction[1]=true;
+                    return new ExpReturnMsg(temp);
+                } else if(tree.get(0).content.equals("putint")) {
+                    ExpReturnMsg param = expToMultiIns(tree.get(2).get(0),out);
+                    out.append("call void @putint(i32 ").append(param).append(")").append('\n');
+                    usedFunction[2]=true;
+                    return new ExpReturnMsg(0);
+                } else if(tree.get(0).content.equals("putch")){
+                    ExpReturnMsg param = expToMultiIns(tree.get(2).get(0),out);
+                    out.append("call void @putch(i32 ").append(param).append(")").append('\n');
+                    usedFunction[3]=true;
+                    return new ExpReturnMsg(0);
+                }
                 /**/
             } else {
                 int sgn = 1;
