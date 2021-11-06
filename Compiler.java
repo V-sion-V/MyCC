@@ -352,7 +352,7 @@ public class Compiler {
     private ExpReturnMsg toBoolean(ExpReturnMsg x,StringBuilder out) {
         if(x.isSymbol()) {
             Symbol temp = currentList.declareNewTemp();
-            out.append(temp).append(" = zext i32 ").append(x).append(" to i1").append('\n');
+            out.append(temp).append(" = icmp ne i32 0, ").append(x).append('\n');
             return new ExpReturnMsg(temp,true);
         }
         return x;
