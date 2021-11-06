@@ -87,7 +87,7 @@ public class Compiler {
         ExpReturnMsg cond = expToMultiIns(tree.get(2).get(0), out, true);
         Symbol labelIf = currentList.declareNewTemp(), labelElse = null;
         String ifStmt = stmt(tree.get(4)),elseStmt = null;
-        if(tree.get(5).type == SyntaxTree.ELSE) {
+        if(tree.getWidth()>5) {
             labelElse = currentList.declareNewTemp();
             elseStmt = stmt(tree.get(6));
         }
