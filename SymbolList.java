@@ -33,15 +33,23 @@ public class SymbolList {
         }
     }
 
-    void declareNewConst(String ident, int value) {
-        if(!symbolMap.containsKey(ident)){
+    Symbol declareNewConst(String ident, int value) {
+        if (symbolMap.containsKey(ident)) {
+            return null;
+        } else {
             Symbol temp = new Symbol(Symbol.CONST,blockName,symbolList.size(),ident,value);
             symbolMap.put(ident,temp);
             symbolList.add(temp);
+            return temp;
         }
     }
 
     Symbol getSymbol(String ident) {
-        return symbolMap.getOrDefault(ident, null);
+        Symbol x =  symbolMap.getOrDefault(ident, null);
+        if(x!=null) {
+            return x;
+        } else if(parent!=null) {
+            return parent.getSymbol(ident);
+        } else return null;
     }
 }

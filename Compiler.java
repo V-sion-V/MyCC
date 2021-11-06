@@ -2,8 +2,8 @@ import java.util.ArrayList;
 
 public class Compiler {
     private final Parser parser = new Parser();
-    private final ArrayList<SymbolList> symbolLists = new ArrayList<>();
-    private SymbolList currentList = new SymbolList(1);
+    private int blocks = 0;
+    private SymbolList currentList;
     boolean[] usedFunction = {false,false,false,false};
 
     public static void main(String[] args) {
@@ -29,6 +29,7 @@ public class Compiler {
     public void compile() {
         SyntaxTree syntaxTree = parser.getSyntaxTree();
         SyntaxTree ele = syntaxTree.get(0);
+        currentList = new SymbolList(blocks++);
         String body = funcDef(ele);
         declSysFunc();//
         System.out.println(body);
@@ -41,9 +42,10 @@ public class Compiler {
 
     private String block(SyntaxTree tree) {
         StringBuilder out = new StringBuilder();
-        for(int i = 1; i < tree.getWidth()-1; i++) {
-            out.append(blockItem(tree.get(i)));
-        }
+        SymbolList old = currentList;
+        currentList = new SymbolList(blocks++,old);
+        for(int i = 1; i < tree.getWidth()-1; i++) out.append(blockItem(tree.get(i)));
+        currentList = old;
         return out.toString();
     }
 
@@ -68,8 +70,8 @@ public class Compiler {
     }
 
     /*
-    Element smaller than stmt will not have its own string builder.
-    Because only the element like stmt might be ordered reversely.
+    Elements smaller than 'stmt' will not have its own string builder.
+    Because only the elements like 'stmt' or 'block' might be ordered reversely.
      */
     private String stmt(SyntaxTree tree) {
         StringBuilder out = new StringBuilder();
@@ -111,32 +113,25 @@ public class Compiler {
     private String varDef(SyntaxTree tree) {
         StringBuilder out = new StringBuilder();
         String lVal = tree.get(0).content;
-        if(currentList.getSymbol(lVal)==null) {
-            Symbol newVar = currentList.declareNewVar(lVal);
+        Symbol newVar = currentList.declareNewVar(lVal);
+        if(newVar !=null) {
             out.append(newVar).append(" = alloca i32").append('\n');
             if (tree.getWidth() >= 3 && tree.get(tree.getWidth() - 2).type == Token.ASSIGN) {
                 ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth() - 1).get(0), out,false);
                 out.append("store i32 ").append(ret).append(", i32* ").append(newVar).append('\n');
             }
-        } else {
-            err(tree);
-        }
+        } else err(tree);
         return out.toString();
     }
 
     private String constDef(SyntaxTree tree) {
         StringBuilder out = new StringBuilder();
         String lVal = tree.get(0).content;
-        if(currentList.getSymbol(lVal)==null) {
-            ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth()-1).get(0),out,false);
-            if(ret != null && ret.isNumber()) {
-                currentList.declareNewConst(lVal,ret.iVal);
-            } else {
-                err(tree);
-            }
-        } else {
-            err(tree);
-        }
+        ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth()-1).get(0),out,false);
+        if(ret != null && ret.isNumber()) {
+            Symbol x = currentList.declareNewConst(lVal,ret.iVal);
+            if(x == null) err(tree);
+        } else  err(tree);
         return out.toString();
     }
 
@@ -145,9 +140,7 @@ public class Compiler {
         if(currentList.getSymbol(lVal)!=null) {
             ExpReturnMsg ret = expToMultiIns(tree.get(2),out,false);
             out.append("store i32 ").append(ret).append(", i32* ").append(currentList.getSymbol(lVal)).append('\n');
-        } else {
-            err(tree);
-        }
+        } else err(tree);
     }
 
     private void ret(SyntaxTree tree, StringBuilder out) {
@@ -348,9 +341,7 @@ public class Compiler {
                     Symbol temp = currentList.declareNewTemp();
                     out.append(temp).append(" = load i32, i32* ").append(symbol).append('\n');
                     return new ExpReturnMsg(temp);
-                } else {
-                    err(tree);
-                }
+                } else err(tree);
             }
         } else err(tree);
         return null;
