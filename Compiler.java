@@ -95,13 +95,13 @@ public class Compiler {
         out.append("br i1 ").append(cond).append(", label ").append(labelIf).append(", label ");
         if(labelElse == null) out.append(labelExit).append('\n');
         else out.append(labelElse).append('\n');
-        out.append('\n').append(labelIf).append(":\n");
+        out.append('\n').append(labelIf.toString().substring(1)).append(":\n");
         out.append(ifStmt).append("br label ").append(labelExit).append('\n');
-        if(elseStmt != null) {
-            out.append('\n').append(labelElse).append(":\n");
+        if(elseStmt != null && labelElse != null) {
+            out.append('\n').append(labelElse.toString().substring(1)).append(":\n");
             out.append(elseStmt).append("br label ").append(labelExit).append('\n');
         }
-        out.append('\n').append(labelExit).append(":\n");
+        out.append('\n').append(labelExit.toString().substring(1)).append(":\n");
     }
 
     private String varDef(SyntaxTree tree) {
