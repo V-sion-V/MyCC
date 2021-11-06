@@ -184,10 +184,13 @@ public class Compiler {
             }
             return toBoolean(last,out);
         } else if (fromCond && (tree.type == SyntaxTree.EqExp || tree.type == SyntaxTree.RelExp)){
+            if(tree.getWidth() == 1) {
+                return expToMultiIns(child.get(0), out, true);
+            }
             ArrayList<ExpReturnMsg> numbers = new ArrayList<>();
             ArrayList<Integer> calculators = new ArrayList<>();
             for(int i = 0; i+1 < child.size(); i+=2) {
-                numbers.add(expToMultiIns(child.get(i),out, true));
+                numbers.add(expToMultiIns(child.get(i), out, true));
                 calculators.add(child.get(i+1).type);
             }
             numbers.add(expToMultiIns(child.get(child.size()-1),out, true));
