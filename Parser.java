@@ -19,37 +19,68 @@ public class Parser {
 
     private SyntaxTree compUnit() { //
         SyntaxTree ret = new SyntaxTree(SyntaxTree.CompUnit);
-        if (token.type == Token.INT || token.type == Token.VOID) {
-            ret.push(funcDef());
-        } else {
-            err();
+        while(token.type != Token.EOF) {
+            if (in.getFurtherToken(1).type == Token.LP) ret.push(funcDef());
+            else ret.push(decl());
         }
         return ret;
     }
 
-    private SyntaxTree funcDef() { //
+    private SyntaxTree funcDef() {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.FuncDef);
         ret.push(funcType());
-
         if (token.type == Token.IDT) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
             if (token.type == Token.LP) {
                 ret.push(new SyntaxTree(token));
                 token = in.nextToken();
-                if (token.type == Token.RP) {
+                if(token.type != Token.RP) {
+                    ret.push(funcFParams());
+                }
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+                ret.push(block());
+            } else err();
+        } else err();
+        return ret;
+    }
+
+    private SyntaxTree funcFParams() {
+        SyntaxTree ret = new SyntaxTree(SyntaxTree.FuncFParams);
+        ret.push(funcFParam());
+        while(token.type==Token.COMMA) {
+            ret.push(new SyntaxTree(token));
+            token = in.nextToken();
+            ret.push(funcFParam());
+        }
+        return ret;
+    }
+
+    private SyntaxTree funcFParam() {
+        SyntaxTree ret = new SyntaxTree(SyntaxTree.FuncFParam);
+        ret.push(bType());
+        if(token.type == Token.IDT) {
+            ret.push(new SyntaxTree(token));
+            token = in.nextToken();
+            if(token.type == Token.LC) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+                if(token.type == Token.RC) {
                     ret.push(new SyntaxTree(token));
                     token = in.nextToken();
-                    ret.push(block());
-                } else {
-                    err();
-                }
-            } else {
-                err();
+                    while(token.type == Token.LC) {
+                        ret.push(new SyntaxTree(token));
+                        token = in.nextToken();
+                        ret.push(exp());
+                        if(token.type == Token.RC) {
+                            ret.push(new SyntaxTree(token));
+                            token = in.nextToken();
+                        } else err();
+                    }
+                } else err();
             }
-        } else {
-            err();
-        }
+        } else err();
         return ret;
     }
 
@@ -58,9 +89,7 @@ public class Parser {
         if (token.type == Token.INT||token.type == Token.VOID) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
-        } else{
-            err();
-        }
+        } else err();
         return ret;
     }
 
@@ -79,26 +108,15 @@ public class Parser {
             if (token.type == Token.RB) {
                 ret.push(new SyntaxTree(token));
                 token = in.nextToken();
-            } else {
-                err();
-            }
-        } else {
-            err();
-        }
+            } else err();
+        } else err();
         return ret;
     }
 
     private SyntaxTree blockItem () {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.BlockItem);
-        if(token.type==Token.IDT ||token.type==Token.RETURN || token.type==Token.MINUS
-                || token.type == Token.PLUS || token.type==Token.LP || token.type==Token.NUM 
-                || token.type==Token.SEMI || token.type == Token.NOT|| token.type == Token.IF || token.type == Token.LB) {
-            ret.push(stmt());
-        } else if(token.type==Token.INT || token.type==Token.CONST) {
-            ret.push(decl());
-        } else {
-            err();
-        }
+        if(token.type==Token.INT || token.type==Token.CONST) ret.push(decl());
+        else ret.push(stmt());
         return ret;
     }
 
@@ -108,9 +126,7 @@ public class Parser {
             ret.push(varDecl());
         } else if(token.type==Token.CONST) {
             ret.push(constDecl());
-        } else {
-            err();
-        }
+        } else err();
         return ret;
     }
 
@@ -129,12 +145,8 @@ public class Parser {
             if(token.type==Token.SEMI) {
                 ret.push(new SyntaxTree(token));
                 token = in.nextToken();
-            } else {
-                err();
-            }
-        } else {
-            err();
-        }
+            } else err();
+        } else err();
         return ret;
     }
 
@@ -143,22 +155,47 @@ public class Parser {
         if(token.type==Token.IDT) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
+            while(token.type == Token.LC) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+                ret.push(constExp());
+                if(token.type == Token.RC) {
+                    token = in.nextToken();
+                    ret.push(constExp());
+                } else err();
+            }
             if(token.type==Token.ASSIGN) {
                 ret.push(new SyntaxTree(token));
                 token = in.nextToken();
                 ret.push(constInitVal());
-            } else {
-                err();
-            }
-        } else {
-            err();
-        }
+            } else err();
+        } else err();
         return ret;
     }
 
     private SyntaxTree constInitVal() {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.ConstInitVal);
-        ret.push(constExp());
+        if(token.type == Token.LB) {
+            ret.push(new SyntaxTree(token));
+            token = in.nextToken();
+            if(token.type == Token.RB) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+            } else {
+                ret.push(constInitVal());
+                while(token.type == Token.COMMA) {
+                    ret.push(new SyntaxTree(token));
+                    token = in.nextToken();
+                    ret.push(constInitVal());
+                }
+                if(token.type == Token.RB) {
+                    ret.push(new SyntaxTree(token));
+                    token = in.nextToken();
+                } else err();
+            }
+        } else {
+            ret.push(constExp());
+        }
         return ret;
     }
 
@@ -174,9 +211,7 @@ public class Parser {
         if(token.type==Token.SEMI) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
-        } else {
-            err();
-        }
+        } else err();
         return ret;
     }
 
@@ -185,20 +220,47 @@ public class Parser {
         if(token.type==Token.IDT) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
+            while(token.type == Token.LC) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+                ret.push(constExp());
+                if(token.type == Token.RC) {
+                    token = in.nextToken();
+                    ret.push(constExp());
+                } else err();
+            }
             if(token.type==Token.ASSIGN) {
                 ret.push(new SyntaxTree(token));
                 token = in.nextToken();
                 ret.push(initVal());
             }
-        } else {
-            err();
-        }
+        } else err();
         return ret;
     }
 
     private SyntaxTree initVal() {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.InitVal);
-        ret.push(exp());
+        if(token.type == Token.LB) {
+            ret.push(new SyntaxTree(token));
+            token = in.nextToken();
+            if(token.type == Token.RB) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+            } else {
+                ret.push(initVal());
+                while(token.type == Token.COMMA) {
+                    ret.push(new SyntaxTree(token));
+                    token = in.nextToken();
+                    ret.push(initVal());
+                }
+                if(token.type == Token.RB) {
+                    ret.push(new SyntaxTree(token));
+                    token = in.nextToken();
+                } else err();
+            }
+        } else {
+            ret.push(exp());
+        }
         return ret;
     }
 
@@ -207,28 +269,33 @@ public class Parser {
         if(token.type==Token.INT) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
-        } else {
-            err();
-        }
+        } else err();
         return ret;
     }
 
     private SyntaxTree stmt() { //
         SyntaxTree ret = new SyntaxTree(SyntaxTree.Stmt);
-
         if (token.type == Token.RETURN) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
-            expSemi(ret);
+            if(token.type != Token.SEMI) {
+                ret.push(exp());
+            }
+            if(token.type == Token.SEMI) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+            } else err();;
         } else if(token.type==Token.IDT&&in.getFurtherToken(0).type==Token.ASSIGN){
             ret.push(lVal());
             if(token.type==Token.ASSIGN) {
                 ret.push(new SyntaxTree(token));
                 token = in.nextToken();
-                expSemi(ret);
-            } else {
-                err();
-            }
+                ret.push(exp());
+                if(token.type == Token.SEMI) {
+                    ret.push(new SyntaxTree(token));
+                    token = in.nextToken();
+                } else err();
+            } else err();
         } else if(token.type == Token.LB) {
             ret.push(block());
         } else if(token.type == Token.IF) {
@@ -247,29 +314,36 @@ public class Parser {
                         token = in.nextToken();
                         ret.push(stmt());
                     }
-                } else {
-                    err();
-                }
-            } else {
-                err();
-            }
-        } else if(token.type!=Token.SEMI) {
-            expSemi(ret);
+                } else err();
+            } else  err();
+        } else if(token.type==Token.WHILE) {
+            ret.push(new SyntaxTree(token));
+            token = in.nextToken();
+            if(token.type == Token.LP) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+                ret.push(cond());
+                if(token.type == Token.RP) {
+                    ret.push(new SyntaxTree(token));
+                    token = in.nextToken();
+                    ret.push(stmt());
+                } else err();
+            } else err();
+        } else if(token.type == Token.CONTINUE || token.type == Token.BREAK) {
+            ret.push(new SyntaxTree(token));
+            token = in.nextToken();
+            if(token.type == Token.SEMI) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+            } else err();
         } else {
+            if(token.type!=Token.SEMI) {
+                ret.push(exp());
+            }
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
         }
         return ret;
-    }
-
-    private void expSemi(SyntaxTree ret) {
-        ret.push(exp());
-        if(token.type == Token.SEMI) {
-            ret.push(new SyntaxTree(token));
-            token = in.nextToken();
-        } else {
-            err();
-        }
     }
 
     private SyntaxTree lVal() {
@@ -277,9 +351,16 @@ public class Parser {
         if(token.type==Token.IDT) {
             ret.push(new SyntaxTree(token));
             token = in.nextToken();
-        } else {
-            err();
-        }
+            while(token.type == Token.LC) {
+                ret.push(new SyntaxTree(token));
+                token = in.nextToken();
+                ret.push(exp());
+                if(token.type == Token.RC) {
+                    ret.push(new SyntaxTree(token));
+                    token = in.nextToken();
+                } else err();
+            }
+        } else err();
         return ret;
     }
 
@@ -332,9 +413,7 @@ public class Parser {
                 if(token.type == Token.RP) {
                     ret.push(new SyntaxTree(token));
                     token = in.nextToken();
-                } else {
-                    err();
-                }
+                } else err();
             }
         } else {
             while(token.type == Token.PLUS || token.type == Token.MINUS || token.type == Token.NOT) {
@@ -369,14 +448,10 @@ public class Parser {
             if(token.type == Token.RP) {
                 ret.push(new SyntaxTree(token));
                 token = in.nextToken();
-            } else {
-                err();
-            }
+            } else err();
         } else if(token.type == Token.IDT) {
             ret.push(lVal());
-        } else {
-            err();
-        }
+        } else err();
         return ret;
     }
 

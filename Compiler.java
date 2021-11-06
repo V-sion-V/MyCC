@@ -44,7 +44,10 @@ public class Compiler {
         StringBuilder out = new StringBuilder();
         SymbolList old = currentList;
         currentList = new SymbolList(blocks++,old);
-        for(int i = 1; i < tree.getWidth()-1; i++) out.append(blockItem(tree.get(i)));
+        for(int i = 1; i < tree.getWidth()-1; i++){
+            out.append(blockItem(tree.get(i)));
+            if(tree.get(i).get(0).get(0).type==Token.RETURN) break;
+        }
         currentList = old;
         return out.toString();
     }
