@@ -67,6 +67,10 @@ public class Compiler {
         return out.toString();
     }
 
+    /*
+    Element smaller than stmt will not have its own string builder.
+    Because only the element like stmt might be ordered reversely.
+     */
     private String stmt(SyntaxTree tree) {
         StringBuilder out = new StringBuilder();
         if(tree.get(0).type == SyntaxTree.LVal) {
