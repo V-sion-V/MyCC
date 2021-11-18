@@ -108,12 +108,10 @@ public class Compiler {
         } else if (tree.get(0).type == SyntaxTree.CONTINUE) {
             if(currentWhile != null){
                 out.append("br label ").append(currentWhile.labelCond).append('\n');
-                out.append("\n").append(currentList.declareNewTemp().toString().substring(1)).append(":\n");
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.BREAK) {
             if(currentWhile != null){
                 out.append("br label ").append(currentWhile.labelExit).append('\n');
-                out.append("\n").append(currentList.declareNewTemp().toString().substring(1)).append(":\n");
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.Block) {
             out.append(block(tree.get(0)));
@@ -125,7 +123,7 @@ public class Compiler {
     private void whileLoop(SyntaxTree tree, StringBuilder out) {
         StringBuilder condIns = new StringBuilder();
         Symbol labelCond = currentList.declareNewTemp(),labelLoop = currentList.declareNewTemp(),labelExit = currentList.declareNewTemp();
-        currentWhile = new WhileBlock(labelExit,labelCond,currentWhile);
+        currentWhile = new WhileBlock(labelCond,labelExit,currentWhile);
         ExpReturnMsg cond = expToMultiIns(tree.get(2).get(0), condIns, true);
         String loopStmt = stmt(tree.get(4));
         out.append("br label ").append(labelCond).append('\n');
