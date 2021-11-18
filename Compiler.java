@@ -4,6 +4,7 @@ public class Compiler {
     private final Parser parser = new Parser();
     private int blocks = 0;
     private SymbolList currentList;
+    private WhileBlock currentWhile = null;
     boolean[] usedFunction = {false, false, false, false};
 
     public static void main(String[] args) {
@@ -44,7 +45,7 @@ public class Compiler {
                         if (newVar != null) {
                             if(def.getWidth()<2) {
                                 body.append(newVar).append(" = global i32 0").append('\n');
-                            }else {
+                            } else {
                                 ExpReturnMsg initVal = expToMultiIns(def.get(2).get(0),body,false);
                                 if(initVal!=null && initVal.isNumber()) body.append(newVar).append(" = global i32 ").append(initVal.iVal).append('\n');
                                 else err(def);
@@ -102,10 +103,37 @@ public class Compiler {
             expToMultiIns(tree.get(0).get(0), out, false);
         } else if (tree.get(0).type == SyntaxTree.IF) {
             ifBranch(tree, out);
+        } else if (tree.get(0).type == SyntaxTree.WHILE) {
+            whileLoop(tree, out);
+        } else if (tree.get(0).type == SyntaxTree.CONTINUE) {
+            if(currentWhile != null){
+                out.append("br label ").append(currentWhile.labelCond).append('\n');
+            } else err(tree);
+        } else if (tree.get(0).type == SyntaxTree.BREAK) {
+            if(currentWhile != null){
+                out.append("br label ").append(currentWhile.labelExit).append('\n');
+            } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.Block) {
             out.append(block(tree.get(0)));
         }
         return out.toString();
+    }
+
+
+    private void whileLoop(SyntaxTree tree, StringBuilder out) {
+        StringBuilder condIns = new StringBuilder();
+        Symbol labelCond = currentList.declareNewTemp(),labelLoop = currentList.declareNewTemp(),labelExit = currentList.declareNewTemp();
+        currentWhile = new WhileBlock(labelExit,labelCond,currentWhile);
+        ExpReturnMsg cond = expToMultiIns(tree.get(2).get(0), condIns, true);
+        String loopStmt = stmt(tree.get(4));
+        out.append("br label ").append(labelCond).append('\n');
+        out.append('\n').append(labelCond.toString().substring(1)).append(":\n");
+        out.append(condIns);
+        out.append("br i1 ").append(cond).append(", label ").append(labelLoop).append(", label ").append(labelExit).append('\n');
+        out.append('\n').append(labelLoop.toString().substring(1)).append(":\n");
+        out.append(loopStmt).append("br label ").append(labelCond).append('\n');
+        out.append('\n').append(labelExit.toString().substring(1)).append(":\n");
+        currentWhile = currentWhile.parent;
     }
 
     private void ifBranch(SyntaxTree tree, StringBuilder out) {

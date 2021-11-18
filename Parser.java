@@ -87,16 +87,10 @@ public class Parser {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.Block);
         if (token.type == Token.LB) {
             eatAndMove(ret);
-            while(token.type==Token.IDT || token.type==Token.INT || token.type==Token.CONST
-                    || token.type==Token.NOT || token.type==Token.MINUS || token.type == Token.PLUS
-                    || token.type==Token.LP || token.type==Token.NUM
-                    || token.type==Token.SEMI || token.type == Token.RETURN
-                    || token.type == Token.IF || token.type == Token.LB) {
+            while(token.type != Token.RB) {
                 ret.push(blockItem());
             }
-            if (token.type == Token.RB) {
-                eatAndMove(ret);
-            } else err();
+            eatAndMove(ret);
         } else err();
         return ret;
     }
@@ -241,7 +235,7 @@ public class Parser {
         return ret;
     }
 
-    private SyntaxTree stmt() { //
+    private SyntaxTree stmt() {
         SyntaxTree ret = new SyntaxTree(SyntaxTree.Stmt);
         if (token.type == Token.RETURN) {
             eatAndMove(ret);
@@ -250,7 +244,7 @@ public class Parser {
             }
             if(token.type == Token.SEMI) {
                 eatAndMove(ret);
-            } else err();;
+            } else err();
         } else if(token.type==Token.IDT&&in.getFurtherToken(0).type==Token.ASSIGN){
             ret.push(lVal());
             if(token.type==Token.ASSIGN) {
