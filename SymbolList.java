@@ -1,9 +1,8 @@
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class SymbolList {
     HashMap<String,Symbol> symbolMap = new HashMap<>();
-    ArrayList<Symbol> symbolList = new ArrayList<>();
+    public int innerNumber = 0;
     final int blockName;
     final SymbolList parent;
 
@@ -17,18 +16,15 @@ public class SymbolList {
     }
 
     Symbol declareNewTemp() {
-        Symbol temp = new Symbol(Symbol.TEMP,blockName,symbolList.size());
-        symbolList.add(temp);
-        return temp;
+        return new Symbol(Symbol.TEMP,blockName, innerNumber++);
     }
 
     Symbol declareNewVar(String ident) {
         if(symbolMap.containsKey(ident)){
             return null;
         } else {
-            Symbol temp = new Symbol(Symbol.VAR,blockName,symbolList.size(),ident);
+            Symbol temp = new Symbol(Symbol.VAR,blockName, innerNumber++,ident);
             symbolMap.put(ident,temp);
-            symbolList.add(temp);
             return temp;
         }
     }
@@ -37,9 +33,8 @@ public class SymbolList {
         if (symbolMap.containsKey(ident)) {
             return null;
         } else {
-            Symbol temp = new Symbol(Symbol.CONST,blockName,symbolList.size(),ident,value);
+            Symbol temp = new Symbol(Symbol.CONST,blockName, innerNumber++,ident,value);
             symbolMap.put(ident,temp);
-            symbolList.add(temp);
             return temp;
         }
     }

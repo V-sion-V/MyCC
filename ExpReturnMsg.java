@@ -37,7 +37,7 @@ public class ExpReturnMsg {
         return type==2;
     }
 
-    public  boolean isBoolean() {
+    public  boolean isBooleanSymbol() {
         return type==3;
     }
 

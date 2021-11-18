@@ -8,21 +8,21 @@ public class Symbol {
     int type;
     int constValue;
 
-    public Symbol(int type, int blockLayer, int innerNumber,String originForm, int constValue) {
+    public Symbol(int type, int blockName, int innerNumber,String originForm, int constValue) {
         this.originForm = originForm;
-        this.blockName = blockLayer;
+        this.blockName = blockName;
         this.innerNumber = innerNumber;
         this.type = type;
         this.constValue = constValue;
     }
 
-    public Symbol(int type, int blockLayer, int innerNumber, String originForm) {
-        this(type,blockLayer,innerNumber,originForm,0);
+    public Symbol(int type, int blockName, int innerNumber, String originForm) {
+        this(VAR,blockName,innerNumber,originForm,0);
     }
 
 
-    public Symbol(int type,  int blockLayer, int innerNumber) {
-        this(type,blockLayer,innerNumber,null);
+    public Symbol(int type,  int blockName, int innerNumber) {
+        this(TEMP,blockName,innerNumber,null,0);
     }
 
 
@@ -30,6 +30,6 @@ public class Symbol {
 
     @Override
     public String toString() {
-        return "%b" + blockName + "x" + innerNumber;
+        return (blockName==0)?"@":"%"+"b" + blockName + "x" + innerNumber;
     }
 }
