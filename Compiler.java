@@ -5,6 +5,7 @@ public class Compiler {
     private int blocks = 0;
     private SymbolList currentList;
     private WhileBlock currentWhile = null;
+    private boolean lastInBlock = false;
     boolean[] usedFunction = {false, false, false, false};
 
     public static void main(String[] args) {
@@ -68,7 +69,8 @@ public class Compiler {
         StringBuilder out = new StringBuilder();
         SymbolList old = currentList;
         currentList = new SymbolList(blocks++, old);
-        for (int i = 1; i < tree.getWidth() - 1; i++) {
+        lastInBlock = false;
+        for (int i = 1; i < tree.getWidth() - 1&&!lastInBlock; i++) {
             out.append(blockItem(tree.get(i)));
             if (tree.get(i).get(0).get(0).type == Token.RETURN) break;
         }
@@ -108,10 +110,12 @@ public class Compiler {
         } else if (tree.get(0).type == SyntaxTree.CONTINUE) {
             if(currentWhile != null){
                 out.append("br label ").append(currentWhile.labelCond).append('\n');
+                lastInBlock = true;
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.BREAK) {
             if(currentWhile != null){
                 out.append("br label ").append(currentWhile.labelExit).append('\n');
+                lastInBlock = true;
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.Block) {
             out.append(block(tree.get(0)));
