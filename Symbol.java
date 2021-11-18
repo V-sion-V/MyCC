@@ -30,6 +30,6 @@ public class Symbol {
 
     @Override
     public String toString() {
-        return (blockName==0)?"@":"%"+"b" + blockName + "x" + innerNumber;
+        return ((blockName==0)?"@":"%")+"b" + blockName + "x" + innerNumber;
     }
 }
