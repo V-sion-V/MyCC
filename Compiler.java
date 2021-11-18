@@ -108,12 +108,12 @@ public class Compiler {
         } else if (tree.get(0).type == SyntaxTree.CONTINUE) {
             if(currentWhile != null){
                 out.append("br label ").append(currentWhile.labelCond).append('\n');
-                out.append("\n").append(currentList.declareNewTemp().toString().substring(1)).append("\n");
+                out.append("\n").append(currentList.declareNewTemp().toString().substring(1)).append(":\n");
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.BREAK) {
             if(currentWhile != null){
                 out.append("br label ").append(currentWhile.labelExit).append('\n');
-                out.append("\n").append(currentList.declareNewTemp().toString().substring(1)).append("\n");
+                out.append("\n").append(currentList.declareNewTemp().toString().substring(1)).append(":\n");
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.Block) {
             out.append(block(tree.get(0)));
