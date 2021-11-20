@@ -236,7 +236,7 @@ public class Compiler {
         } else if(tree.get(0).type == SyntaxTree.Exp) {
             ExpReturnMsg ret = expToMultiIns(tree.get(0), out, false);
             if (ret != null) {
-                out.append("store i32 ").append(ret.symbol).append(", i32* ").append(thisStep).append('\n');
+                out.append("store i32 ").append(ret).append(", i32* ").append(thisStep).append('\n');
             } else err(tree);
         }
     }
@@ -446,7 +446,7 @@ public class Compiler {
                             ExpReturnMsg ret = expToMultiIns(lVal.get(i),out,false);
                             getPtr.append(", i32 ").append(ret);
                         }
-                        out.append(getPtr);
+                        out.append(getPtr).append('\n');
                         Symbol tempVal = currentList.declareNewTemp();
                         out.append(tempVal).append(" = load i32, i32* ").append(tempPtr).append('\n');
                         return new ExpReturnMsg(tempVal);
