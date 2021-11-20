@@ -64,14 +64,14 @@ public class Lexer {
     }
 
     public Token nextToken() {
-        while(tokenBuffer.size()<6) {
+        while(tokenBuffer.size()<11) {
             tokenBuffer.add(nextTokenInner());
         }
         return tokenBuffer.poll();
     }
 
     public Token getFurtherToken(int n) {
-        if(n>=0&&n<5) {
+        if(n>=0&&n<10) {
             return tokenBuffer.get(n);
         } else {
             return null;

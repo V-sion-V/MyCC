@@ -243,15 +243,6 @@ public class Parser {
             if(token.type == Token.SEMI) {
                 eatAndMove(ret);
             } else err();
-        } else if(token.type==Token.IDT&&in.getFurtherToken(0).type==Token.ASSIGN){
-            ret.push(lVal());
-            if(token.type==Token.ASSIGN) {
-                eatAndMove(ret);
-                ret.push(exp());
-                if(token.type == Token.SEMI) {
-                    eatAndMove(ret);
-                } else err();
-            } else err();
         } else if(token.type == Token.LB) {
             ret.push(block());
         } else if(token.type == Token.IF) {
@@ -282,6 +273,16 @@ public class Parser {
             eatAndMove(ret);
             if(token.type == Token.SEMI) {
                 eatAndMove(ret);
+            } else err();
+        } else if(token.type==Token.IDT&&(in.getFurtherToken(0).type == Token.ASSIGN
+                || in.getFurtherToken(3).type == Token.ASSIGN || in.getFurtherToken(6).type == Token.ASSIGN)){
+            ret.push(lVal());
+            if(token.type==Token.ASSIGN) {
+                eatAndMove(ret);
+                ret.push(exp());
+                if(token.type == Token.SEMI) {
+                    eatAndMove(ret);
+                } else err();
             } else err();
         } else {
             if(token.type!=Token.SEMI) {

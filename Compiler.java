@@ -274,7 +274,7 @@ public class Compiler {
                     }
                     out.append(getPtr).append('\n');
                     out.append("store i32 ").append(ret).append(", i32* ").append(tempPtr).append('\n');
-                } err(lVal);
+                } else err(lVal);
             } else err(tree);
         } else err(tree);
     }
