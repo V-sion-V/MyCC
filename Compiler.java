@@ -38,21 +38,41 @@ public class Compiler {
                 SyntaxTree decl = unit.get(0);
                 if (decl.type == SyntaxTree.ConstDecl) {
                     for (int j = 2; j < decl.getWidth(); j += 2) {
-                        constDef(decl.get(j));
+                        SyntaxTree def = decl.get(j);
+                        if (def.get(1).type == Token.ASSIGN) {
+                            constDef(def);
+                        } else {
+                            ArraySymbol newVar = declArray(def,body,true);
+                            body.append(newVar).append(" = dso_local constant ").append(newVar.getType(0));
+                            initGlobalArray(def.get(def.getWidth()-1),body,newVar,0);
+                            body.append('\n');
+                        }
                     }
                 } else {
                     for (int j = 1; j < decl.getWidth(); j += 2) {
                         SyntaxTree def = decl.get(j);
-                        Symbol newVar = currentList.declareNewVar(def.get(0).content);
-                        if (newVar != null) {
-                            if(def.getWidth()<2) {
-                                body.append(newVar).append(" = global i32 0").append('\n');
+                        if(def.getWidth()<=1 || def.get(1).type == Token.ASSIGN) {
+                            Symbol newVar = currentList.declareNewVar(def.get(0).content);
+                            if (newVar != null) {
+                                if (def.getWidth() < 2) {
+                                    body.append(newVar).append(" = global i32 0").append('\n');
+                                } else {
+                                    ExpReturnMsg initVal = expToMultiIns(def.get(2).get(0), body, false);
+                                    if (initVal != null && initVal.isNumber())
+                                        body.append(newVar).append(" = global i32 ").append(initVal.iVal).append('\n');
+                                    else err(def);
+                                }
+                            } else err(def);
+                        } else {
+                            ArraySymbol newVar = declArray(def,body,false);
+                            body.append(newVar).append(" = dso_local global ").append(newVar.getType(0)).append(' ');
+                            if(def.get(def.getWidth()-2).type == Token.ASSIGN) {
+                                initGlobalArray(def.get(def.getWidth() - 1), body, newVar, 0);
                             } else {
-                                ExpReturnMsg initVal = expToMultiIns(def.get(2).get(0),body,false);
-                                if(initVal!=null && initVal.isNumber()) body.append(newVar).append(" = global i32 ").append(initVal.iVal).append('\n');
-                                else err(def);
+                                body.append("zeroinitializer");
                             }
-                        } else err(def);
+                            body.append('\n');
+                        }
                     }
                 }
             }
@@ -61,7 +81,35 @@ public class Compiler {
         System.out.println(body);
     }
 
-    private String funcDef(SyntaxTree tree) {
+    private void initGlobalArray(SyntaxTree initVal, StringBuilder out, ArraySymbol symbol, int dim) {
+        if(initVal.get(0).type == Token.LB && initVal.get(1).type != Token.RB) {
+            out.append(" [ ");
+            for(int i = 0; i < symbol.dimensions.get(dim); i++) {
+                out.append(symbol.getType(dim+1)).append(' ');
+                if(i*2+1 < initVal.getWidth()) {
+                    initGlobalArray(initVal.get(i*2+1),out,symbol,dim+1);
+                } else {
+                    if(dim+1 == symbol.dimensions.size()) out.append('0');
+                    else out.append("zeroinitializer");
+                }
+                if(i+1<symbol.dimensions.get(dim)) {
+                    out.append(", ");
+                }
+            }
+            out.append(" ] ");
+        } else if(initVal.get(0).type == SyntaxTree.Exp || initVal.get(0).type == SyntaxTree.ConstExp){
+            if(dim == symbol.dimensions.size()) {
+                ExpReturnMsg ret = expToMultiIns(initVal.get(0), out, false);
+                if (ret != null && ret.isNumber()) {
+                    out.append(ret.iVal);
+                } else err(initVal);
+            } else err(initVal);
+        } else {
+            out.append("zeroinitializer");
+        }
+    }
+
+    private String funcDef(SyntaxTree tree) { //
         return "define dso_local " + (tree.get(0).get(0).type == Token.INT ? "i32" : "void") + " @"+ tree.get(1).content +"() {\n" +
                 block(tree.get(tree.getWidth() - 1)) + "}\n";
     }
