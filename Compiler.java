@@ -435,6 +435,22 @@ public class Compiler {
                 Symbol symbol = currentList.getSymbol(ident);
                 if (symbol != null && symbol.type == Symbol.Const) {
                     return new ExpReturnMsg(((ConstSymbol)symbol).constValue);
+                } else if (symbol != null && (symbol.type == Symbol.ConstArray||symbol.type == Symbol.VarArray)) {
+                    SyntaxTree lVal = child.get(0);
+                    if(((ArraySymbol)symbol).dimensions.size() == lVal.getWidth()/3) {
+                        StringBuilder getPtr = new StringBuilder();
+                        Symbol tempPtr = currentList.declareNewTemp();
+                        getPtr.append(tempPtr).append(" = getelementptr ").append(((ArraySymbol)symbol).getType(0)).append(", ");
+                        getPtr.append(((ArraySymbol)symbol).getType(0)).append("* ").append(symbol).append(", i32 0");
+                        for(int i = 2; i < lVal.getWidth(); i+=3) {
+                            ExpReturnMsg ret = expToMultiIns(lVal.get(i),out,false);
+                            getPtr.append(", i32 ").append(ret);
+                        }
+                        out.append(getPtr);
+                        Symbol tempVal = currentList.declareNewTemp();
+                        out.append(tempVal).append(" = load i32, i32* ").append(tempPtr).append('\n');
+                        return new ExpReturnMsg(tempVal);
+                    } err(lVal);
                 } else if (symbol != null) {
                     Symbol temp = currentList.declareNewTemp();
                     out.append(temp).append(" = load i32, i32* ").append(symbol).append('\n');
