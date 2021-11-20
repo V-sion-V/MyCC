@@ -5,7 +5,7 @@ public class Compiler {
     private int blocks = 0;
     private SymbolList currentList;
     private WhileBlock currentWhile = null;
-    boolean[] usedFunction = {false, false, false, false};
+    boolean[] usedFunction = {false, false, false, false,false};
 
     public static void main(String[] args) {
         Compiler compiler = new Compiler();
@@ -19,7 +19,7 @@ public class Compiler {
     }
 
     private void declSysFunc() {
-        String[] func = {"declare i32 @getint()", "declare i32 @getch()", "declare void @putint(i32)", "declare void @putch(i32)"};
+        String[] func = {"declare i32 @getint()", "declare i32 @getch()", "declare void @putint(i32)", "declare void @putch(i32)", "declare void @memset(i32*,i32,i32)"};
         for (int i = 0; i < usedFunction.length; i++) {
             if (usedFunction[i]) {
                 System.out.println(func[i]);
@@ -173,13 +173,24 @@ public class Compiler {
             } else err(tree);
         } else {
             ArraySymbol symbol = declArray(tree,out,false);
-            out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append("\n");
-            out.append("store ").append(symbol.getType(0)).append(" 0, ").append(symbol.getType(0)).append("* ").append(symbol).append('\n');
+            initToZero(out, symbol);
             if(tree.get(tree.getWidth()-1).type == SyntaxTree.InitVal) {
                 initArray(tree.get(tree.getWidth()-1),out,symbol,symbol,0);
             }
         }
         return out.toString();
+    }
+
+    private void initToZero(StringBuilder out, ArraySymbol symbol) {
+        usedFunction[4] = true;
+        out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append("\n");
+        TempSymbol temp = currentList.declareNewTemp();
+        out.append(temp).append(" = getelementptr ").append(symbol.getType(0)).append(", ");
+        out.append(symbol.getType(0)).append("* ").append(symbol).append(", i32 0");
+        int size = 4;
+        for (int i : symbol.dimensions) size *= i;
+        out.append(", i32 0".repeat(symbol.dimensions.size())).append('\n');
+        out.append("call void @memset(i32* ").append(temp).append(", i32 0, i32 ").append(size).append(")\n");
     }
 
     private String constDef(SyntaxTree tree) {
@@ -193,8 +204,7 @@ public class Compiler {
             } else err(tree.get(2).get(0));
         } else {
             ArraySymbol symbol = declArray(tree,out,true);
-            out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append("\n");
-            out.append("store ").append(symbol.getType(0)).append(" 0, ").append(symbol.getType(0)).append("* ").append(symbol).append('\n');
+            initToZero(out, symbol);
             initArray(tree.get(tree.getWidth()-1),out,symbol,symbol,0);
         }
         return out.toString();
