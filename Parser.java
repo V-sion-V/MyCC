@@ -280,7 +280,12 @@ public class Parser {
                 ret.push(temp);
                 eatAndMove(ret);
             } else if(token.type == Token.ASSIGN) {
-                if(temp.get(0).get(0).get(0).get(0).type == SyntaxTree.PrimaryExp) {
+                if(temp.getWidth() == 1 &&
+                        temp.get(0).getWidth() == 1 &&
+                        temp.get(0).get(0).getWidth() == 1 &&
+                        temp.get(0).get(0).get(0).getWidth() == 1 &&
+                        temp.get(0).get(0).get(0).get(0).getWidth() == 1 &&
+                        temp.get(0).get(0).get(0).get(0).type == SyntaxTree.PrimaryExp) {
                     SyntaxTree lVal = temp.get(0).get(0).get(0).get(0).get(0);
                     if (lVal.type == SyntaxTree.LVal) {
                         ret.push(lVal);
