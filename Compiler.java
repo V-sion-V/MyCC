@@ -173,6 +173,8 @@ public class Compiler {
             } else err(tree);
         } else {
             ArraySymbol symbol = declArray(tree,out,false);
+            out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append("\n");
+            out.append("store ").append(symbol.getType(0)).append(" 0, ").append(symbol.getType(0)).append("* ").append(symbol).append('\n');
             if(tree.get(tree.getWidth()-1).type == SyntaxTree.InitVal) {
                 initArray(tree.get(tree.getWidth()-1),out,symbol,symbol,0);
             }
@@ -191,6 +193,8 @@ public class Compiler {
             } else err(tree.get(2).get(0));
         } else {
             ArraySymbol symbol = declArray(tree,out,true);
+            out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append("\n");
+            out.append("store ").append(symbol.getType(0)).append(" 0, ").append(symbol.getType(0)).append("* ").append(symbol).append('\n');
             initArray(tree.get(tree.getWidth()-1),out,symbol,symbol,0);
         }
         return out.toString();
@@ -208,7 +212,6 @@ public class Compiler {
         ArraySymbol symbol;
         if(isConst) symbol = currentList.declareNewConstArray(lVal, dimensions);
         else symbol = currentList.declareNewVarArray(lVal, dimensions);
-        out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append(" zeroinitializer\n");
         return symbol;
     }
 
@@ -242,10 +245,27 @@ public class Compiler {
     }
 
     private void assign(SyntaxTree tree, StringBuilder out) {
-        String lVal = tree.get(0).get(0).content;
-        if (currentList.getSymbol(lVal) != null) {
-            ExpReturnMsg ret = expToMultiIns(tree.get(2), out, false);
-            out.append("store i32 ").append(ret).append(", i32* ").append(currentList.getSymbol(lVal)).append('\n');
+        String idtName = tree.get(0).get(0).content;
+        Symbol symbol = currentList.getSymbol(idtName);
+        if (symbol != null) {
+            ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth()-1), out, false);
+            if (symbol.type == Symbol.Var) {
+                out.append("store i32 ").append(ret).append(", i32* ").append(symbol).append('\n');
+            } else if(symbol.type == Symbol.VarArray) {
+                SyntaxTree lVal = tree.get(0);
+                if(((ArraySymbol)symbol).dimensions.size() == lVal.getWidth()/3) {
+                    StringBuilder getPtr = new StringBuilder();
+                    Symbol tempPtr = currentList.declareNewTemp();
+                    getPtr.append(tempPtr).append(" = getelementptr ").append(((ArraySymbol)symbol).getType(0)).append(", ");
+                    getPtr.append(((ArraySymbol)symbol).getType(0)).append("* ").append(symbol).append(", i32 0");
+                    for(int i = 2; i < lVal.getWidth(); i+=3) {
+                        ExpReturnMsg index = expToMultiIns(lVal.get(i),out,false);
+                        getPtr.append(", i32 ").append(index);
+                    }
+                    out.append(getPtr).append('\n');
+                    out.append("store i32 ").append(ret).append(", i32* ").append(tempPtr).append('\n');
+                } err(lVal);
+            } else err(tree);
         } else err(tree);
     }
 
