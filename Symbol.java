@@ -1,32 +1,14 @@
-import java.net.PortUnreachableException;
-
 public class Symbol {
-    static final int TEMP = 0, VAR = 1, CONST = 2;
-    String originForm;
+    static final int TEMP = 0, Var = 1, Const = 2, VarArray = 3, ConstArray = 4, Func = 5;
     int blockName;
     int innerNumber;
     int type;
-    int constValue;
 
-    public Symbol(int type, int blockName, int innerNumber,String originForm, int constValue) {
-        this.originForm = originForm;
+    public Symbol(int blockName, int innerNumber, int type) {
         this.blockName = blockName;
         this.innerNumber = innerNumber;
         this.type = type;
-        this.constValue = constValue;
     }
-
-    public Symbol(int type, int blockName, int innerNumber, String originForm) {
-        this(VAR,blockName,innerNumber,originForm,0);
-    }
-
-
-    public Symbol(int type,  int blockName, int innerNumber) {
-        this(TEMP,blockName,innerNumber,null,0);
-    }
-
-
-
 
     @Override
     public String toString() {

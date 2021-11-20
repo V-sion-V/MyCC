@@ -36,9 +36,11 @@ public class Compiler {
             if(unit.type == SyntaxTree.FuncDef) body.append(funcDef(unit));
             else {
                 SyntaxTree decl = unit.get(0);
-                if (decl.type == SyntaxTree.ConstDecl)
-                    for (int j = 2; j < decl.getWidth(); j += 2) constDef(decl.get(j));
-                else {
+                if (decl.type == SyntaxTree.ConstDecl) {
+                    for (int j = 2; j < decl.getWidth(); j += 2) {
+                        constDef(decl.get(j));
+                    }
+                } else {
                     for (int j = 1; j < decl.getWidth(); j += 2) {
                         SyntaxTree def = decl.get(j);
                         Symbol newVar = currentList.declareNewVar(def.get(0).content);
@@ -84,7 +86,7 @@ public class Compiler {
             if (tree.type == SyntaxTree.VarDecl)
                 for (int i = 1; i < tree.getWidth(); i += 2) out.append(varDef(tree.get(i)));
             else
-                for (int i = 2; i < tree.getWidth(); i += 2) constDef(tree.get(i));
+                for (int i = 2; i < tree.getWidth(); i += 2) out.append(constDef(tree.get(i)));
         } else out.append(stmt(tree));
         return out.toString();
     }
@@ -159,25 +161,84 @@ public class Compiler {
 
     private String varDef(SyntaxTree tree) {
         StringBuilder out = new StringBuilder();
-        String lVal = tree.get(0).content;
-        Symbol newVar = currentList.declareNewVar(lVal);
-        if (newVar != null) {
-            out.append(newVar).append(" = alloca i32").append('\n');
-            if (tree.getWidth() >= 3 && tree.get(tree.getWidth() - 2).type == Token.ASSIGN) {
-                ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth() - 1).get(0), out, false);
-                out.append("store i32 ").append(ret).append(", i32* ").append(newVar).append('\n');
+        if(tree.getWidth()<=1||tree.get(1).type != Token.LC) {
+            String lVal = tree.get(0).content;
+            Symbol newVar = currentList.declareNewVar(lVal);
+            if (newVar != null) {
+                out.append(newVar).append(" = alloca i32").append('\n');
+                if (tree.getWidth() >= 3 && tree.get(tree.getWidth() - 2).type == Token.ASSIGN) {
+                    ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth() - 1).get(0), out, false);
+                    out.append("store i32 ").append(ret).append(", i32* ").append(newVar).append('\n');
+                }
+            } else err(tree);
+        } else {
+            ArraySymbol symbol = declArray(tree,out,false);
+            if(tree.get(tree.getWidth()-1).type == SyntaxTree.InitVal) {
+                initArray(tree.get(tree.getWidth()-1),out,symbol,symbol,0);
             }
-        } else err(tree);
+        }
         return out.toString();
     }
 
-    private void constDef(SyntaxTree tree) {
+    private String constDef(SyntaxTree tree) {
+        StringBuilder out = new StringBuilder();
+        if(tree.get(1).type == Token.ASSIGN) {
+            String lVal = tree.get(0).content;
+            ExpReturnMsg ret = expToMultiIns(tree.get(2).get(0), out, false);
+            if (ret != null && ret.isNumber()) {
+                Symbol x = currentList.declareNewConst(lVal, ret.iVal);
+                if (x == null) err(tree);
+            } else err(tree.get(2).get(0));
+        } else {
+            ArraySymbol symbol = declArray(tree,out,true);
+            initArray(tree.get(tree.getWidth()-1),out,symbol,symbol,0);
+        }
+        return out.toString();
+    }
+
+    private ArraySymbol declArray(SyntaxTree tree, StringBuilder out, boolean isConst) {
         String lVal = tree.get(0).content;
-        ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth() - 1).get(0), new StringBuilder(), false);
-        if (ret != null && ret.isNumber()) {
-            Symbol x = currentList.declareNewConst(lVal, ret.iVal);
-            if (x == null) err(tree);
-        } else err(tree);
+        ArrayList<Integer> dimensions = new ArrayList<>();
+        for(int i = 2; i<tree.getWidth()&&tree.get(i).type == SyntaxTree.ConstExp; i+=3){
+            ExpReturnMsg dimWidth = expToMultiIns(tree.get(i).get(0),out,false);
+            if(dimWidth!=null && dimWidth.isNumber()) {
+                dimensions.add(dimWidth.iVal);
+            } else err(tree.get(i).get(0));
+        }
+        ArraySymbol symbol;
+        if(isConst) symbol = currentList.declareNewConstArray(lVal, dimensions);
+        else symbol = currentList.declareNewVarArray(lVal, dimensions);
+        out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append(" zeroinitializer\n");
+        return symbol;
+    }
+
+    private void initArray(SyntaxTree tree, StringBuilder out, ArraySymbol symbol, Symbol thisStep, int dim) {
+        if(tree.get(0).type == Token.LB && tree.get(1).type != Token.RB) {
+            TempSymbol nextStep = currentList.declareNewTemp();
+            out.append(nextStep).append(" = getelementptr ").append(symbol.getType(dim)).append(", ");
+            out.append(symbol.getType(dim)).append("* ").append(thisStep).append(", i32 0, i32 0\n");
+            for(int i = 1; i < tree.getWidth(); i+=2) {
+                initArray(tree.get(i),out,symbol,nextStep,dim+1);
+                if(i+2<tree.getWidth()) {
+                    thisStep = nextStep;
+                    nextStep = currentList.declareNewTemp();
+                    out.append(nextStep).append(" = getelementptr ").append(symbol.getType(dim+1)).append(", ");
+                    out.append(symbol.getType(dim+1)).append("* ").append(thisStep).append(", i32 ").append(1).append('\n');
+                }
+            }
+        } else if(tree.get(0).type == SyntaxTree.ConstExp) {
+            if(dim == symbol.dimensions.size()) {
+                ExpReturnMsg ret = expToMultiIns(tree.get(0), out, false);
+                if (ret != null && ret.isNumber()) {
+                    out.append("store i32 ").append(ret.iVal).append(", i32* ").append(thisStep).append('\n');
+                } else err(tree);
+            } else err(tree);
+        } else if(tree.get(0).type == SyntaxTree.Exp) {
+            ExpReturnMsg ret = expToMultiIns(tree.get(0), out, false);
+            if (ret != null) {
+                out.append("store i32 ").append(ret.symbol).append(", i32* ").append(thisStep).append('\n');
+            } else err(tree);
+        }
     }
 
     private void assign(SyntaxTree tree, StringBuilder out) {
@@ -372,8 +433,8 @@ public class Compiler {
             } else {
                 String ident = child.get(0).get(0).content;
                 Symbol symbol = currentList.getSymbol(ident);
-                if (symbol != null && symbol.type == Symbol.CONST) {
-                    return new ExpReturnMsg(symbol.constValue);
+                if (symbol != null && symbol.type == Symbol.Const) {
+                    return new ExpReturnMsg(((ConstSymbol)symbol).constValue);
                 } else if (symbol != null) {
                     Symbol temp = currentList.declareNewTemp();
                     out.append(temp).append(" = load i32, i32* ").append(symbol).append('\n');

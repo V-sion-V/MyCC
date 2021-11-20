@@ -137,8 +137,7 @@ public class Parser {
                 eatAndMove(ret);
                 ret.push(constExp());
                 if(token.type == Token.RC) {
-                    token = in.nextToken();
-                    ret.push(constExp());
+                    eatAndMove(ret);
                 } else err();
             }
             if(token.type==Token.ASSIGN) {
@@ -193,8 +192,7 @@ public class Parser {
                 eatAndMove(ret);
                 ret.push(constExp());
                 if(token.type == Token.RC) {
-                    token = in.nextToken();
-                    ret.push(constExp());
+                    eatAndMove(ret);
                 } else err();
             }
             if(token.type==Token.ASSIGN) {

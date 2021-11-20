@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class SymbolList {
@@ -15,25 +16,45 @@ public class SymbolList {
         this.parent = parent;
     }
 
-    Symbol declareNewTemp() {
-        return new Symbol(Symbol.TEMP,blockName, innerNumber++);
+    TempSymbol declareNewTemp() {
+        return new TempSymbol(blockName, innerNumber++);
     }
 
-    Symbol declareNewVar(String ident) {
+    VarSymbol declareNewVar(String ident) {
         if(symbolMap.containsKey(ident)){
             return null;
         } else {
-            Symbol temp = new Symbol(Symbol.VAR,blockName, innerNumber++,ident);
+            VarSymbol temp = new VarSymbol(blockName, innerNumber++, ident);
             symbolMap.put(ident,temp);
             return temp;
         }
     }
 
-    Symbol declareNewConst(String ident, int value) {
+    ConstSymbol declareNewConst(String ident, int value) {
         if (symbolMap.containsKey(ident)) {
             return null;
         } else {
-            Symbol temp = new Symbol(Symbol.CONST,blockName, innerNumber++,ident,value);
+            ConstSymbol temp = new ConstSymbol(blockName, innerNumber++, ident, value);
+            symbolMap.put(ident,temp);
+            return temp;
+        }
+    }
+
+    ArraySymbol declareNewConstArray(String ident, ArrayList<Integer> dimensions) {
+        if(symbolMap.containsKey(ident)){
+            return null;
+        } else {
+            ArraySymbol temp = new ArraySymbol(blockName, innerNumber++, ident, Symbol.ConstArray, dimensions);
+            symbolMap.put(ident,temp);
+            return temp;
+        }
+    }
+
+    ArraySymbol declareNewVarArray(String ident, ArrayList<Integer> dimensions) {
+        if(symbolMap.containsKey(ident)){
+            return null;
+        } else {
+            ArraySymbol temp = new ArraySymbol(blockName, innerNumber++, ident, Symbol.VarArray, dimensions);
             symbolMap.put(ident,temp);
             return temp;
         }
