@@ -10,7 +10,7 @@ public class ArraySymbol extends NonTempSymbol{
     public String getType(int dim) {
         StringBuilder out = new StringBuilder("i32");
         for(int i = dimensions.size()-1; i >= dim; i--) {
-            out.insert(0, "[" + dimensions.get(i) + "*");
+            out.insert(0, "[" + dimensions.get(i) + "x");
             out.append(']');
         }
         return out.toString();
