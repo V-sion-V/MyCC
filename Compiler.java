@@ -258,7 +258,7 @@ public class Compiler {
         String idtName = tree.get(0).get(0).content;
         Symbol symbol = currentList.getSymbol(idtName);
         if (symbol != null) {
-            ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth()-1), out, false);
+            ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth()-2), out, false);
             if (symbol.type == Symbol.Var) {
                 out.append("store i32 ").append(ret).append(", i32* ").append(symbol).append('\n');
             } else if(symbol.type == Symbol.VarArray) {
