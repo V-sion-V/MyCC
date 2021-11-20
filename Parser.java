@@ -274,20 +274,27 @@ public class Parser {
             if(token.type == Token.SEMI) {
                 eatAndMove(ret);
             } else err();
-        } else if(token.type==Token.IDT&&(in.getFurtherToken(0).type == Token.ASSIGN
-                || in.getFurtherToken(3).type == Token.ASSIGN || in.getFurtherToken(6).type == Token.ASSIGN)){
-            ret.push(lVal());
-            if(token.type==Token.ASSIGN) {
+        } else if(token.type != Token.SEMI){
+            SyntaxTree temp = exp();
+            if(token.type == Token.SEMI) {
+                ret.push(temp);
                 eatAndMove(ret);
-                ret.push(exp());
-                if(token.type == Token.SEMI) {
-                    eatAndMove(ret);
+            } else {
+                if(temp.get(0).get(0).get(0).get(0).type == SyntaxTree.PrimaryExp) {
+                    SyntaxTree lVal = temp.get(0).get(0).get(0).get(0).get(0);
+                    if (lVal.type == SyntaxTree.LVal) {
+                        ret.push(lVal);
+                        if (token.type == Token.ASSIGN) {
+                            eatAndMove(ret);
+                            ret.push(exp());
+                            if (token.type == Token.SEMI) {
+                                eatAndMove(ret);
+                            } else err();
+                        } else err();
+                    } else err();
                 } else err();
-            } else err();
-        } else {
-            if(token.type!=Token.SEMI) {
-                ret.push(exp());
             }
+        } else {
             eatAndMove(ret);
         }
         return ret;
