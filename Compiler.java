@@ -62,7 +62,7 @@ public class Compiler {
     }
 
     private String funcDef(SyntaxTree tree) {
-        return "define dso_local " + (tree.get(0).get(0).type == Token.INT ? "i32" : "void") + " @main() {\n" +
+        return "define dso_local " + (tree.get(0).get(0).type == Token.INT ? "i32" : "void") + " @"+ tree.get(1).content +"() {\n" +
                 block(tree.get(tree.getWidth() - 1)) + "}\n";
     }
 
