@@ -230,7 +230,6 @@ public class Compiler {
     }
 
     private void initToZero(StringBuilder out, ArraySymbol symbol) {
-        usedFunction[4] = true;
         out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append("\n");
         out.append("store ").append(symbol.getType(0)).append(" zeroinitializer, ")
                 .append(symbol.getType(0)).append("* ").append(symbol).append('\n');
