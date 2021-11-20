@@ -232,13 +232,14 @@ public class Compiler {
     private void initToZero(StringBuilder out, ArraySymbol symbol) {
         usedFunction[4] = true;
         out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append("\n");
-        TempSymbol temp = currentList.declareNewTemp();
-        out.append(temp).append(" = getelementptr ").append(symbol.getType(0)).append(", ");
-        out.append(symbol.getType(0)).append("* ").append(symbol).append(", i32 0");
-        int size = 4;
-        for (int i : symbol.dimensions) size *= i;
-        out.append(", i32 0".repeat(symbol.dimensions.size())).append('\n');
-        out.append("call void @memset(i32* ").append(temp).append(", i32 0, i32 ").append(size).append(")\n");
+        out.append("store ").append(symbol.getType(0)).append(" zeroinitializer, ").append(symbol.getType(0)).append("* ").append(symbol);
+        // TempSymbol temp = currentList.declareNewTemp();
+        // out.append(temp).append(" = getelementptr ").append(symbol.getType(0)).append(", ");
+        // out.append(symbol.getType(0)).append("* ").append(symbol).append(", i32 0");
+        // int size = 4;
+        // for (int i : symbol.dimensions) size *= i;
+        // out.append(", i32 0".repeat(symbol.dimensions.size())).append('\n');
+        // out.append("call void @memset(i32* ").append(temp).append(", i32 0, i32 ").append(size).append(")\n");
     }
 
     private String constDef(SyntaxTree tree) {
