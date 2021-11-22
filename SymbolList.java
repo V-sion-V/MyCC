@@ -44,21 +44,33 @@ public class SymbolList {
         if(symbolMap.containsKey(ident)){
             return null;
         } else {
-            ArraySymbol temp = new ArraySymbol(blockName, innerNumber++, ident, Symbol.ConstArray, dimensions);
+            ArraySymbol temp = new ArraySymbol(blockName, innerNumber++, ident, Symbol.ConstArray, dimensions, false);
             symbolMap.put(ident,temp);
             return temp;
         }
     }
 
-    ArraySymbol declareNewVarArray(String ident, ArrayList<Integer> dimensions) {
+    ArraySymbol declareNewVarArray(String ident, ArrayList<Integer> dimensions, boolean fromParam) {
         if(symbolMap.containsKey(ident)){
             return null;
         } else {
-            ArraySymbol temp = new ArraySymbol(blockName, innerNumber++, ident, Symbol.VarArray, dimensions);
+            ArraySymbol temp = new ArraySymbol(blockName, innerNumber++, ident, Symbol.VarArray, dimensions, fromParam);
             symbolMap.put(ident,temp);
             return temp;
         }
     }
+
+    FuncSymbol declareNewFunction(String ident, ArrayList<Symbol> params, boolean isInt) {
+        if(symbolMap.containsKey(ident)){
+            return null;
+        } else {
+            FuncSymbol temp = new FuncSymbol(blockName, innerNumber++, ident, params, isInt);
+            symbolMap.put(ident,temp);
+            return temp;
+        }
+    }
+
+
 
     Symbol getSymbol(String ident) {
         Symbol x =  symbolMap.getOrDefault(ident, null);

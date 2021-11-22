@@ -4,4 +4,8 @@ public class NonTempSymbol extends Symbol{
         super(blockName,innerNumber,type);
         this.originForm = originForm;
     }
+    @Override
+    public String toString() {
+        return (blockName==0)?"@"+originForm:"%"+"b" + blockName + "x" + innerNumber;
+    }
 }

@@ -5,7 +5,6 @@ public class Compiler {
     private int blocks = 0;
     private SymbolList currentList;
     private WhileBlock currentWhile = null;
-    boolean[] usedFunction = {false, false, false, false};
 
     public static void main(String[] args) {
         Compiler compiler = new Compiler();
@@ -19,18 +18,34 @@ public class Compiler {
     }
 
     private void declSysFunc() {
-        String[] func = {"declare i32 @getint()", "declare i32 @getch()", "declare void @putint(i32)", "declare void @putch(i32)"};
-        for (int i = 0; i < usedFunction.length; i++) {
-            if (usedFunction[i]) {
-                System.out.println(func[i]);
-            }
-        }
+        ArrayList<Symbol> zero = new ArrayList<>(), one = new ArrayList<>(), oneArray = new ArrayList<>(), two = new ArrayList<>();
+        ArrayList<Integer> dim = new ArrayList<>();
+        dim.add(0);
+        SymbolList list = new SymbolList(-1);
+        one.add(list.declareNewVar("a"));
+        oneArray.add(list.declareNewVarArray("b",dim,true));
+        two.add(list.declareNewVar("c"));
+        two.add(list.declareNewVarArray("d",dim,true));
+        FuncSymbol temp;
+        temp = currentList.declareNewFunction("getint",zero,true);
+        System.out.println("declare i32 " + temp.toString() + "()");
+        temp = currentList.declareNewFunction("getch",zero,true);
+        System.out.println("declare i32 " + temp.toString() + "()");
+        temp = currentList.declareNewFunction("getarray",oneArray,true);
+        System.out.println("declare i32 " + temp.toString() + "(i32*)");
+        temp = currentList.declareNewFunction("putint",one,false);
+        System.out.println("declare void " + temp.toString() + "(i32)");
+        temp = currentList.declareNewFunction("putch",one,false);
+        System.out.println("declare void " + temp.toString() + "(i32)");
+        temp = currentList.declareNewFunction("putarray",two,false);
+        System.out.println("declare void " + temp.toString() + "(i32, i32*)");
     }
 
     public void compile() {
         SyntaxTree syntaxTree = parser.getSyntaxTree();
         StringBuilder body = new StringBuilder();
         currentList = new SymbolList(blocks++);
+        declSysFunc();
         for(int i = 0; i < syntaxTree.getWidth(); i++) {
             SyntaxTree unit = syntaxTree.get(i);
             if(unit.type == SyntaxTree.FuncDef) body.append(funcDef(unit));
@@ -77,8 +92,13 @@ public class Compiler {
                 }
             }
         }
-        declSysFunc();//
-        System.out.println(body);
+        if(currentList.symbolMap.containsKey("main")) {
+            if(currentList.getSymbol("main").type==Symbol.Func) {
+                if(((FuncSymbol)currentList.getSymbol("main")).param.size()==0) {
+                    System.out.println(body);
+                } else err(syntaxTree);
+            } else err(syntaxTree);
+        } else err(syntaxTree);
     }
 
     private void initGlobalArray(SyntaxTree initVal, StringBuilder out, ArraySymbol symbol, int dim) {
@@ -109,20 +129,56 @@ public class Compiler {
         }
     }
 
-    private String funcDef(SyntaxTree tree) { //
-        return "define dso_local " + (tree.get(0).get(0).type == Token.INT ? "i32" : "void") + " @"+ tree.get(1).content +"() {\n" +
-                block(tree.get(tree.getWidth() - 1)) + "}\n";
+    private String funcDef(SyntaxTree tree) {
+        StringBuilder out = new StringBuilder();
+        StringBuilder inner = new StringBuilder();
+        currentList = new SymbolList(blocks++, currentList);
+        boolean isInt = tree.get(0).get(0).type == Token.INT;
+        String funcName = tree.get(1).content;
+        out.append("define dso_local ").append(isInt?"i32":"void").append(" @").append(funcName).append('(');
+        ArrayList<Symbol> params = new ArrayList<>();
+        if(tree.get(3).type == SyntaxTree.FuncFParams) {
+            SyntaxTree fParams = tree.get(3);
+            boolean first = true;
+            for(int j = 0; j<fParams.getWidth();j+=2) {
+                SyntaxTree fParam = fParams.get(j);
+                if(fParam.getWidth() == 2) {
+
+                    VarSymbol intParam = currentList.declareNewVar(fParam.get(1).content);
+                    inner.append(intParam).append(" = alloca i32\n");
+                    Symbol temp = currentList.declareNewTemp();
+                    inner.append("store i32 ").append(temp).append(", i32 * ").append(intParam).append('\n');
+                    out.append(first?"":", ").append("i32 ").append(temp);
+                    params.add(intParam);
+                } else {
+                    ArrayList<Integer> dimensions = new ArrayList<>();
+                    dimensions.add(0);
+                    for(int i = 5;i<fParam.getWidth();i+=3) {
+                        ExpReturnMsg dimWidth = expToMultiIns(fParam.get(i).get(0),out,false);
+                        if(dimWidth!=null && dimWidth.isNumber()) {
+                            dimensions.add(dimWidth.iVal);
+                        } else err(fParam.get(i).get(0));
+                    }
+                    ArraySymbol arrayParam = currentList.declareNewVarArray(fParam.get(1).content,dimensions,true);
+                    out.append(first?"":", ").append(arrayParam.getType(0)).append(" * ").append(arrayParam);
+                    params.add(arrayParam);
+                }
+                first = false;
+            }
+        }
+        currentList.parent.declareNewFunction(funcName,params,isInt);
+        out.append(") {\n").append(inner).append(block(tree.get(tree.getWidth() - 1), true)).append("}\n");
+        return out.toString();
     }
 
-    private String block(SyntaxTree tree) {
+    private String block(SyntaxTree tree, boolean isFunc) {
         StringBuilder out = new StringBuilder();
-        SymbolList old = currentList;
-        currentList = new SymbolList(blocks++, old);
+        if(!isFunc) currentList = new SymbolList(blocks++, currentList);
         for (int i = 1; i < tree.getWidth() - 1; i++) {
             out.append(blockItem(tree.get(i)));
             if (tree.get(i).get(0).get(0).type == Token.RETURN) break;
         }
-        currentList = old;
+        currentList = currentList.parent;
         return out.toString();
     }
 
@@ -164,7 +220,7 @@ public class Compiler {
                 out.append("br label ").append(currentWhile.labelExit).append('\n');
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.Block) {
-            out.append(block(tree.get(0)));
+            out.append(block(tree.get(0),false));
         }
         return out.toString();
     }
@@ -263,7 +319,7 @@ public class Compiler {
         }
         ArraySymbol symbol;
         if(isConst) symbol = currentList.declareNewConstArray(lVal, dimensions);
-        else symbol = currentList.declareNewVarArray(lVal, dimensions);
+        else symbol = currentList.declareNewVarArray(lVal, dimensions, false);
         return symbol;
     }
 
@@ -306,15 +362,7 @@ public class Compiler {
             } else if(symbol.type == Symbol.VarArray) {
                 SyntaxTree lVal = tree.get(0);
                 if(((ArraySymbol)symbol).dimensions.size() == lVal.getWidth()/3) {
-                    StringBuilder getPtr = new StringBuilder();
-                    Symbol tempPtr = currentList.declareNewTemp();
-                    getPtr.append(tempPtr).append(" = getelementptr ").append(((ArraySymbol)symbol).getType(0)).append(", ");
-                    getPtr.append(((ArraySymbol)symbol).getType(0)).append("* ").append(symbol).append(", i32 0");
-                    for(int i = 2; i < lVal.getWidth(); i+=3) {
-                        ExpReturnMsg index = expToMultiIns(lVal.get(i),out,false);
-                        getPtr.append(", i32 ").append(index);
-                    }
-                    out.append(getPtr).append('\n');
+                    Symbol tempPtr = getArrayElementPtr(out, symbol, lVal);
                     out.append("store i32 ").append(ret).append(", i32* ").append(tempPtr).append('\n');
                 } else err(lVal);
             } else err(tree);
@@ -458,32 +506,52 @@ public class Compiler {
             }
             ExpReturnMsg primary;
             if (tree.get(tree.getWidth() - 1).type == Token.RP) {
-                /**/
                 primary = new ExpReturnMsg(currentList.declareNewTemp());
-                switch (tree.get(0).content) {
-                    case "getint" -> {
-                        out.append(primary).append(" = call i32 @getint()").append('\n');
-                        usedFunction[0] = true;
-                    }
-                    case "getch" -> {
-                        out.append(primary).append(" = call i32 @getch()").append('\n');
-                        usedFunction[1] = true;
-                    }
-                    case "putint" -> {
-                        ExpReturnMsg param = expToMultiIns(tree.get(2).get(0), out, fromCond);
-                        out.append("call void @putint(i32 ").append(param).append(")").append('\n');
-                        usedFunction[2] = true;
-                        return new ExpReturnMsg(0);
-                    }
-                    case "putch" -> {
-                        ExpReturnMsg param = expToMultiIns(tree.get(2).get(0), out, fromCond);
-                        out.append("call void @putch(i32 ").append(param).append(")").append('\n');
-                        usedFunction[3] = true;
-                        return new ExpReturnMsg(0);
-                    }
-                }
-                /**/
+                String funcName = tree.get(0).content;
+                FuncSymbol f = (FuncSymbol) currentList.getSymbol(funcName);
+                if(f!=null) {
+                    StringBuilder call = new StringBuilder();
+                    if(tree.get(2).type == SyntaxTree.FuncRParams) {
+                        if(f.isInt) call.append(primary).append(" = call i32 ").append(f).append("(");
+                        else call.append("call void ").append(f).append("(");
+                        SyntaxTree params = tree.get(2);
+                        for(int i = 0;i<params.getWidth();i+=2) {
+                            if(f.param.size() >= i/2+1) {
+                                if(f.param.get(i/2).type == Symbol.Var || f.param.get(i/2).type == Symbol.Const) {
+                                    ExpReturnMsg param = expToMultiIns(params.get(i),out,false);
+                                    call.append(i==0?"":", ").append("i32 ").append(param);
+                                } else {
+                                    if(params.get(i).getWidth() == 1 &&
+                                            params.get(i).get(0).getWidth() == 1 &&
+                                            params.get(i).get(0).get(0).getWidth() == 1 &&
+                                            params.get(i).get(0).get(0).get(0).getWidth() == 1 &&
+                                            params.get(i).get(0).get(0).get(0).get(0).getWidth() == 1 &&
+                                            params.get(i).get(0).get(0).get(0).get(0).get(0).type == SyntaxTree.LVal){
+                                        SyntaxTree primaryExp = params.get(i).get(0).get(0).get(0).get(0);
+                                        Symbol arrayName = currentList.getSymbol(primaryExp.get(0).get(0).content);
+                                        if(primaryExp.get(0).getWidth()/3 + ((ArraySymbol)f.param.get(i/2)).dimensions.size() == ((ArraySymbol)arrayName).dimensions.size()) {
+                                            ArraySymbol fp = (ArraySymbol)f.param.get(i/2), rp = (ArraySymbol)arrayName;
+                                            int fpSize = fp.dimensions.size(), rpSize= rp.dimensions.size();
+                                            for(int j = 1; fpSize-j>0;j++) {
+                                                if(!fp.dimensions.get(fpSize - j).equals(rp.dimensions.get(rpSize - j))) {
+                                                    err(params.get(i));
+                                                }
+                                            }
+                                            call.append(i==0?"":", ").append(fp.getType(0)).append("* ").append(expToMultiIns(primaryExp,out,false));
+                                        } else err(params.get(i));
+                                    } else err(params.get(i));
+                                }
+                            } else err(params.get(i));
+                        }
+                        call.append(")\n");
+                        out.append(call);
+                    } else if(f.param.size()==0) {
+                        if(f.isInt) out.append(primary).append(" = call i32 ").append(f).append("()\n");
+                        else out.append("call void ").append(f).append("()\n");
+                    } else err(tree);
+                } else err(tree);
             } else primary = expToMultiIns(child.get(child.size() - 1), out, fromCond);
+            if(primary != null && primary.isPtr) err(tree);
             Symbol temp = currentList.declareNewTemp();
             if (not == 0) {
                 if (sgn == 1) return primary;
@@ -509,20 +577,16 @@ public class Compiler {
                     return new ExpReturnMsg(((ConstSymbol)symbol).constValue);
                 } else if (symbol != null && (symbol.type == Symbol.ConstArray||symbol.type == Symbol.VarArray)) {
                     SyntaxTree lVal = child.get(0);
+                    Symbol tempPtr =  getArrayElementPtr(out, symbol, lVal);
+                    Symbol tempVal = currentList.declareNewTemp();
+                    out.append(tempVal).append(" = load i32, i32* ").append(tempPtr).append('\n');
                     if(((ArraySymbol)symbol).dimensions.size() == lVal.getWidth()/3) {
-                        StringBuilder getPtr = new StringBuilder();
-                        Symbol tempPtr = currentList.declareNewTemp();
-                        getPtr.append(tempPtr).append(" = getelementptr ").append(((ArraySymbol)symbol).getType(0)).append(", ");
-                        getPtr.append(((ArraySymbol)symbol).getType(0)).append("* ").append(symbol).append(", i32 0");
-                        for(int i = 2; i < lVal.getWidth(); i+=3) {
-                            ExpReturnMsg ret = expToMultiIns(lVal.get(i),out,false);
-                            getPtr.append(", i32 ").append(ret);
-                        }
-                        out.append(getPtr).append('\n');
-                        Symbol tempVal = currentList.declareNewTemp();
-                        out.append(tempVal).append(" = load i32, i32* ").append(tempPtr).append('\n');
                         return new ExpReturnMsg(tempVal);
-                    } err(lVal);
+                    } else if(((ArraySymbol)symbol).dimensions.size() > lVal.getWidth()/3) {
+                        ExpReturnMsg ret =  new ExpReturnMsg(tempVal);
+                        ret.isPtr = true;
+                        return ret;
+                    } else err(lVal);
                 } else if (symbol != null) {
                     Symbol temp = currentList.declareNewTemp();
                     out.append(temp).append(" = load i32, i32* ").append(symbol).append('\n');
@@ -531,6 +595,19 @@ public class Compiler {
             }
         } else err(tree);
         return null;
+    }
+
+    private Symbol getArrayElementPtr(StringBuilder out, Symbol symbol, SyntaxTree lVal) {
+        StringBuilder getPtr = new StringBuilder();
+        Symbol tempPtr = currentList.declareNewTemp();
+        getPtr.append(tempPtr).append(" = getelementptr ").append(((ArraySymbol)symbol).getType(0)).append(", ");
+        getPtr.append(((ArraySymbol)symbol).getType(0)).append("* ").append(symbol).append((((ArraySymbol)symbol).fromParam)?"":", i32 0");
+        for(int i = 2; i < lVal.getWidth(); i+=3) {
+            ExpReturnMsg ret = expToMultiIns(lVal.get(i),out,false);
+            getPtr.append(", i32 ").append(ret);
+        }
+        out.append(getPtr).append('\n');
+        return tempPtr;
     }
 
     private ExpReturnMsg toBoolean(ExpReturnMsg x, StringBuilder out) {

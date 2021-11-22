@@ -2,7 +2,7 @@ public class ExpReturnMsg {
     final int type;
     final int iVal;
     final Symbol symbol;
-
+    boolean isPtr = false;
 
     public ExpReturnMsg(int iVal) {
         this.iVal = iVal;
@@ -41,4 +41,7 @@ public class ExpReturnMsg {
         return type==3;
     }
 
+    public boolean isPtr() {
+        return isPtr;
+    }
 }
