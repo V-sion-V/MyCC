@@ -14,7 +14,7 @@ public class Compiler {
 
     private void err(SyntaxTree tree) {
         System.out.println(tree.type);
-        System.exit(1);
+        System.exit(tree.type);
     }
 
     private void declSysFunc() {
