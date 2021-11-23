@@ -145,7 +145,7 @@ public class Compiler {
                 if(fParam.getWidth() == 2) {
 
                     VarSymbol intParam = currentList.declareNewVar(fParam.get(1).content);
-                    inner.append(intParam).append(" = alloca i32\n");
+                    inner.append(intParam).append(" = alloca i32\n\t");
                     Symbol temp = currentList.declareNewTemp();
                     inner.append("store i32 ").append(temp).append(", i32 * ").append(intParam).append('\n');
                     out.append(first?"":", ").append("i32 ").append(temp);
@@ -167,7 +167,7 @@ public class Compiler {
             }
         }
         FuncSymbol symbol = currentList.parent.declareNewFunction(funcName,params,isInt);
-        out.append(") {\n").append(inner).append(block(tree.get(tree.getWidth() - 1), symbol)).append("}\n");
+        out.append(") {\n\t").append(inner).append(block(tree.get(tree.getWidth() - 1), symbol)).append("}\n\n");
         return out.toString();
     }
 
@@ -217,11 +217,11 @@ public class Compiler {
             whileLoop(tree, out);
         } else if (tree.get(0).type == SyntaxTree.CONTINUE) {
             if(currentWhile != null){
-                out.append("br label ").append(currentWhile.labelCond).append('\n');
+                out.append("br label ").append(currentWhile.labelCond).append("\n\t");
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.BREAK) {
             if(currentWhile != null){
-                out.append("br label ").append(currentWhile.labelExit).append('\n');
+                out.append("br label ").append(currentWhile.labelExit).append("\n\t");
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.Block) {
             out.append(block(tree.get(0),null));
@@ -236,13 +236,13 @@ public class Compiler {
         currentWhile = new WhileBlock(labelCond,labelExit,currentWhile);
         ExpReturnMsg cond = expToMultiIns(tree.get(2).get(0), condIns, true);
         String loopStmt = stmt(tree.get(4));
-        out.append("br label ").append(labelCond).append('\n');
-        out.append('\n').append(labelCond.toString().substring(1)).append(":\n");
+        out.append("br label ").append(labelCond).append("\n");
+        out.append('\n').append(labelCond.toString().substring(1)).append(":\n\t");
         out.append(condIns);
-        out.append("br i1 ").append(cond).append(", label ").append(labelLoop).append(", label ").append(labelExit).append('\n');
-        out.append('\n').append(labelLoop.toString().substring(1)).append(":\n");
-        out.append(loopStmt).append("br label ").append(labelCond).append('\n');
-        out.append('\n').append(labelExit.toString().substring(1)).append(":\n");
+        out.append("br i1 ").append(cond).append(", label ").append(labelLoop).append(", label ").append(labelExit).append("\n");
+        out.append('\n').append(labelLoop.toString().substring(1)).append(":\n\t");
+        out.append(loopStmt).append("br label ").append(labelCond).append("\n");
+        out.append('\n').append(labelExit.toString().substring(1)).append(":\n\t");
         currentWhile = currentWhile.parent;
     }
 
@@ -258,13 +258,13 @@ public class Compiler {
         out.append("br i1 ").append(cond).append(", label ").append(labelIf).append(", label ");
         if (labelElse == null) out.append(labelExit).append('\n');
         else out.append(labelElse).append('\n');
-        out.append('\n').append(labelIf.toString().substring(1)).append(":\n");
+        out.append('\n').append(labelIf.toString().substring(1)).append(":\n\t");
         out.append(ifStmt).append("br label ").append(labelExit).append('\n');
         if (elseStmt != null && labelElse != null) {
-            out.append('\n').append(labelElse.toString().substring(1)).append(":\n");
-            out.append(elseStmt).append("br label ").append(labelExit).append('\n');
+            out.append('\n').append(labelElse.toString().substring(1)).append(":\n\t");
+            out.append(elseStmt).append("br label ").append(labelExit).append("\n");
         }
-        out.append('\n').append(labelExit.toString().substring(1)).append(":\n");
+        out.append('\n').append(labelExit.toString().substring(1)).append(":\n\t");
     }
 
     private String varDef(SyntaxTree tree) {
@@ -273,10 +273,10 @@ public class Compiler {
             String lVal = tree.get(0).content;
             Symbol newVar = currentList.declareNewVar(lVal);
             if (newVar != null) {
-                out.append(newVar).append(" = alloca i32").append('\n');
+                out.append(newVar).append(" = alloca i32").append("\n\t");
                 if (tree.getWidth() >= 3 && tree.get(tree.getWidth() - 2).type == Token.ASSIGN) {
                     ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth() - 1).get(0), out, false);
-                    out.append("store i32 ").append(ret).append(", i32* ").append(newVar).append('\n');
+                    out.append("store i32 ").append(ret).append(", i32* ").append(newVar).append("\n\t");
                 }
             } else err(tree);
         } else {
@@ -290,9 +290,9 @@ public class Compiler {
     }
 
     private void initToZero(StringBuilder out, ArraySymbol symbol) {
-        out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append("\n");
+        out.append(symbol).append(" = alloca ").append(symbol.getType(0)).append("\n\t");
         out.append("store ").append(symbol.getType(0)).append(" zeroinitializer, ")
-                .append(symbol.getType(0)).append("* ").append(symbol).append('\n');
+                .append(symbol.getType(0)).append("* ").append(symbol).append("\n\t");
     }
 
     private String constDef(SyntaxTree tree) {
@@ -331,27 +331,27 @@ public class Compiler {
         if(tree.get(0).type == Token.LB && tree.get(1).type != Token.RB) {
             TempSymbol nextStep = currentList.declareNewTemp();
             out.append(nextStep).append(" = getelementptr ").append(symbol.getType(dim)).append(", ");
-            out.append(symbol.getType(dim)).append("* ").append(thisStep).append(", i32 0, i32 0\n");
+            out.append(symbol.getType(dim)).append("* ").append(thisStep).append(", i32 0, i32 0\n\t");
             for(int i = 1; i < tree.getWidth(); i+=2) {
                 initArray(tree.get(i),out,symbol,nextStep,dim+1);
                 if(i+2<tree.getWidth()) {
                     thisStep = nextStep;
                     nextStep = currentList.declareNewTemp();
                     out.append(nextStep).append(" = getelementptr ").append(symbol.getType(dim+1)).append(", ");
-                    out.append(symbol.getType(dim+1)).append("* ").append(thisStep).append(", i32 ").append(1).append('\n');
+                    out.append(symbol.getType(dim+1)).append("* ").append(thisStep).append(", i32 ").append(1).append("\n\t");
                 }
             }
         } else if(tree.get(0).type == SyntaxTree.ConstExp) {
             if(dim == symbol.dimensions.size()) {
                 ExpReturnMsg ret = expToMultiIns(tree.get(0), out, false);
                 if (ret != null && ret.isNumber()) {
-                    out.append("store i32 ").append(ret.iVal).append(", i32* ").append(thisStep).append('\n');
+                    out.append("store i32 ").append(ret.iVal).append(", i32* ").append(thisStep).append("\n\t");
                 } else err(tree);
             } else err(tree);
         } else if(tree.get(0).type == SyntaxTree.Exp) {
             ExpReturnMsg ret = expToMultiIns(tree.get(0), out, false);
             if (ret != null) {
-                out.append("store i32 ").append(ret).append(", i32* ").append(thisStep).append('\n');
+                out.append("store i32 ").append(ret).append(", i32* ").append(thisStep).append("\n\t");
             } else err(tree);
         }
     }
@@ -362,12 +362,12 @@ public class Compiler {
         if (symbol != null) {
             ExpReturnMsg ret = expToMultiIns(tree.get(tree.getWidth()-2), out, false);
             if (symbol.type == Symbol.Var) {
-                out.append("store i32 ").append(ret).append(", i32* ").append(symbol).append('\n');
+                out.append("store i32 ").append(ret).append(", i32* ").append(symbol).append("\n\t");
             } else if(symbol.type == Symbol.VarArray) {
                 SyntaxTree lVal = tree.get(0);
                 if(((ArraySymbol)symbol).dimensions.size() == lVal.getWidth()/3) {
                     Symbol tempPtr = getArrayElementPtr(out, symbol, lVal,false);
-                    out.append("store i32 ").append(ret).append(", i32* ").append(tempPtr).append('\n');
+                    out.append("store i32 ").append(ret).append(", i32* ").append(tempPtr).append("\n\t");
                 } else err(lVal);
             } else err(tree);
         } else err(tree);
@@ -376,25 +376,24 @@ public class Compiler {
     private void ret(SyntaxTree tree, StringBuilder out) {
         SyntaxTree secondChild = tree.get(1);
         if (secondChild.type == Token.SEMI) {
-            out.append("ret void").append('\n');
+            out.append("ret void").append("\n");
         } else {
             ExpReturnMsg ret = expToMultiIns(secondChild, out, false);
-            out.append("ret i32 ").append(ret).append('\n');
+            out.append("ret i32 ").append(ret).append("\n");
         }
     }
 
     private ExpReturnMsg expToMultiIns(SyntaxTree tree, StringBuilder out, boolean fromCond) {
-        ArrayList<SyntaxTree> child = tree.getChild();
         if (tree.type == SyntaxTree.Exp || tree.type == SyntaxTree.ConstExp) {
-            return expToMultiIns(child.get(0), out, fromCond);
+            return expToMultiIns(tree.get(0), out, fromCond);
         } else if (fromCond && (tree.type == SyntaxTree.LAndExp || tree.type == SyntaxTree.LOrExp)) {
             ArrayList<ExpReturnMsg> numbers = new ArrayList<>();
             ArrayList<Integer> calculators = new ArrayList<>();
-            for (int i = 0; i + 1 < child.size(); i += 2) {
-                numbers.add(expToMultiIns(child.get(i), out, true));
-                calculators.add(child.get(i + 1).type);
+            for (int i = 0; i + 1 < tree.getWidth(); i += 2) {
+                numbers.add(expToMultiIns(tree.get(i), out, true));
+                calculators.add(tree.get(i + 1).type);
             }
-            numbers.add(expToMultiIns(child.get(child.size() - 1), out, true));
+            numbers.add(expToMultiIns(tree.get(tree.getWidth() - 1), out, true));
             ExpReturnMsg last = toBoolean(numbers.get(0), out), now;
             Symbol temp;
             for (int i = 1; i < numbers.size(); i++) {
@@ -406,21 +405,21 @@ public class Compiler {
                     case Token.AND -> out.append("and");
                     case Token.OR -> out.append("or");
                 }
-                out.append(" i1 ").append(last).append(", ").append(now).append('\n');
+                out.append(" i1 ").append(last).append(", ").append(now).append("\n\t");
                 last = new ExpReturnMsg(temp, true);
             }
             return toBoolean(last, out);
         } else if (fromCond && (tree.type == SyntaxTree.EqExp || tree.type == SyntaxTree.RelExp)) {
             if (tree.getWidth() == 1) {
-                return expToMultiIns(child.get(0), out, true);
+                return expToMultiIns(tree.get(0), out, true);
             }
             ArrayList<ExpReturnMsg> numbers = new ArrayList<>();
             ArrayList<Integer> calculators = new ArrayList<>();
-            for (int i = 0; i + 1 < child.size(); i += 2) {
-                numbers.add(expToMultiIns(child.get(i), out, true));
-                calculators.add(child.get(i + 1).type);
+            for (int i = 0; i + 1 < tree.getWidth(); i += 2) {
+                numbers.add(expToMultiIns(tree.get(i), out, true));
+                calculators.add(tree.get(i + 1).type);
             }
-            numbers.add(expToMultiIns(child.get(child.size() - 1), out, true));
+            numbers.add(expToMultiIns(tree.get(tree.getWidth() - 1), out, true));
             ExpReturnMsg last = toInt(numbers.get(0), out), now;
             Symbol temp;
             for (int i = 1; i < numbers.size(); i++) {
@@ -437,18 +436,18 @@ public class Compiler {
                     case Token.GT -> out.append("sgt");
                     case Token.LT -> out.append("slt");
                 }
-                out.append(" i32 ").append(last).append(", ").append(now).append('\n');
+                out.append(" i32 ").append(last).append(", ").append(now).append("\n\t");
                 last = new ExpReturnMsg(temp, true);
             }
             return toBoolean(last, out);
         } else if (tree.type == SyntaxTree.MulExp || tree.type == SyntaxTree.AddExp) {
             ArrayList<ExpReturnMsg> numbers = new ArrayList<>();
             ArrayList<Integer> calculators = new ArrayList<>();
-            for (int i = 0; i + 1 < child.size(); i += 2) {
-                numbers.add(expToMultiIns(child.get(i), out, fromCond));
-                calculators.add(child.get(i + 1).type);
+            for (int i = 0; i + 1 < tree.getWidth(); i += 2) {
+                numbers.add(expToMultiIns(tree.get(i), out, fromCond));
+                calculators.add(tree.get(i + 1).type);
             }
-            numbers.add(expToMultiIns(child.get(child.size() - 1), out, fromCond));
+            numbers.add(expToMultiIns(tree.get(tree.getWidth() - 1), out, fromCond));
             ExpReturnMsg last, now;
             Symbol temp;
             int startAt = 1;
@@ -494,17 +493,17 @@ public class Compiler {
                     case Token.PLUS -> out.append("add");
                     case Token.MINUS -> out.append("sub");
                 }
-                out.append(" i32 ").append(last).append(", ").append(now).append('\n');
+                out.append(" i32 ").append(last).append(", ").append(now).append("\n\t");
                 last = new ExpReturnMsg(temp, false);
             }
             return last;
         } else if (tree.type == SyntaxTree.UnaryExp) {
             int sgn = 1, not = 0, i;
-            for (i = 0; i + 1 < child.size(); i++) {
-                if (child.get(i).type != Token.PLUS) {
-                    if (child.get(i).type == Token.MINUS) sgn *= -1;
-                    else if (child.get(i).type == Token.NOT && fromCond) not++;
-                    else if (child.get(i).type == Token.NOT) err(tree);
+            for (i = 0; i + 1 < tree.getWidth(); i++) {
+                if (tree.get(i).type != Token.PLUS) {
+                    if (tree.get(i).type == Token.MINUS) sgn *= -1;
+                    else if (tree.get(i).type == Token.NOT && fromCond) not++;
+                    else if (tree.get(i).type == Token.NOT) err(tree);
                     else break;
                 }
             }
@@ -546,43 +545,43 @@ public class Compiler {
                                 }
                             } else err(params.get(j));
                         }
-                        call.append(")\n");
+                        call.append(")\n\t");
                         out.append(call);
                     } else if(f.param.size()==0) {
-                        if(f.isInt) out.append(primary).append(" = call i32 ").append(f).append("()\n");
-                        else out.append("call void ").append(f).append("()\n");
+                        if(f.isInt) out.append(primary).append(" = call i32 ").append(f).append("()\n\t");
+                        else out.append("call void ").append(f).append("()\n\t");
                     } else err(tree.get(i+2));
                 } else err(tree.get(i));
-            } else primary = expToMultiIns(child.get(child.size() - 1), out, fromCond);
+            } else primary = expToMultiIns(tree.get(tree.getWidth() - 1), out, fromCond);
             if(primary != null && primary.isPtr) err(tree);
             Symbol temp = currentList.declareNewTemp();
             if (not == 0) {
                 if (sgn == 1) return primary;
                 else if (primary != null && primary.isNumber()) return new ExpReturnMsg(-primary.iVal);
                 else {
-                    out.append(temp).append(" = mul i32 -1, ").append(primary).append('\n');
+                    out.append(temp).append(" = mul i32 -1, ").append(primary).append("\n\t");
                     return new ExpReturnMsg(temp);
                 }
             } else {
-                if (not % 2 == 0) out.append(temp).append(" = icmp ne i32 0, ").append(primary).append('\n');
-                else out.append(temp).append(" = icmp eq i32 0, ").append(primary).append('\n');
+                if (not % 2 == 0) out.append(temp).append(" = icmp ne i32 0, ").append(primary).append("\n\t");
+                else out.append(temp).append(" = icmp eq i32 0, ").append(primary).append("\n\t");
                 return new ExpReturnMsg(temp, true);
             }
         } else if (tree.type == SyntaxTree.PrimaryExp) {
-            if (child.get(0).type == SyntaxTree.NUM) {
-                return new ExpReturnMsg(Integer.parseInt(child.get(0).content));
-            } else if (child.get(0).type == Token.LP) {
-                return expToMultiIns(child.get(1), out, fromCond);
+            if (tree.get(0).type == SyntaxTree.NUM) {
+                return new ExpReturnMsg(Integer.parseInt(tree.get(0).content));
+            } else if (tree.get(0).type == Token.LP) {
+                return expToMultiIns(tree.get(1), out, fromCond);
             } else {
-                String ident = child.get(0).get(0).content;
+                String ident = tree.get(0).get(0).content;
                 Symbol symbol = currentList.getSymbol(ident);
                 if (symbol != null && symbol.type == Symbol.Const) {
                     return new ExpReturnMsg(((ConstSymbol)symbol).constValue);
                 } else if (symbol != null && (symbol.type == Symbol.ConstArray||symbol.type == Symbol.VarArray)) {
-                    SyntaxTree lVal = child.get(0);
+                    SyntaxTree lVal = tree.get(0);
                     Symbol tempPtr =  getArrayElementPtr(out, symbol, lVal, false);
                     Symbol tempVal = currentList.declareNewTemp();
-                    out.append(tempVal).append(" = load i32, i32* ").append(tempPtr).append('\n');
+                    out.append(tempVal).append(" = load i32, i32* ").append(tempPtr).append("\n\t");
                     if(((ArraySymbol)symbol).dimensions.size() == lVal.getWidth()/3) {
                         return new ExpReturnMsg(tempVal);
                     } else if(((ArraySymbol)symbol).dimensions.size() > lVal.getWidth()/3) {
@@ -592,7 +591,7 @@ public class Compiler {
                     } else err(lVal);
                 } else if (symbol != null) {
                     Symbol temp = currentList.declareNewTemp();
-                    out.append(temp).append(" = load i32, i32* ").append(symbol).append('\n');
+                    out.append(temp).append(" = load i32, i32* ").append(symbol).append("\n\t");
                     return new ExpReturnMsg(temp);
                 } else err(tree);
             }
@@ -609,14 +608,14 @@ public class Compiler {
             ExpReturnMsg ret = expToMultiIns(lVal.get(i),out,false);
             getPtr.append(", i32 ").append(ret);
         }
-        out.append(getPtr).append(fromParam?", i32 0\n":"\n");
+        out.append(getPtr).append(fromParam?", i32 0\n\t":"\n\t");
         return tempPtr;
     }
 
     private ExpReturnMsg toBoolean(ExpReturnMsg x, StringBuilder out) {
         if (x.isSymbol()) {
             Symbol temp = currentList.declareNewTemp();
-            out.append(temp).append(" = icmp ne i32 0, ").append(x).append('\n');
+            out.append(temp).append(" = icmp ne i32 0, ").append(x).append("\n\t");
             return new ExpReturnMsg(temp, true);
         }
         return x;
@@ -625,7 +624,7 @@ public class Compiler {
     private ExpReturnMsg toInt(ExpReturnMsg x, StringBuilder out) {
         if (x.isBooleanSymbol()) {
             Symbol temp = currentList.declareNewTemp();
-            out.append(temp).append(" = zext i1 ").append(x).append(" to i32").append('\n');
+            out.append(temp).append(" = zext i1 ").append(x).append(" to i32").append("\n\t");
             return new ExpReturnMsg(temp, false);
         }
         return x;
