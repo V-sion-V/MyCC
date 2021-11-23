@@ -179,7 +179,7 @@ public class Compiler {
             out.append(blockItem(tree.get(i)));
             if (tree.get(i).get(0).get(0).type == Token.RETURN) break;
         }
-        if(func != null && tree.get(i).get(0).get(0).type != Token.RETURN) {
+        if(func != null && i < tree.getWidth() && tree.get(i).get(0).get(0).type != Token.RETURN) {
             if(!func.isInt) {
                 out.append("ret void\n");
             } else err(tree.get(i).get(0).get(0));
