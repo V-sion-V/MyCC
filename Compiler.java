@@ -551,8 +551,8 @@ public class Compiler {
                     } else if(f.param.size()==0) {
                         if(f.isInt) out.append(primary).append(" = call i32 ").append(f).append("()\n");
                         else out.append("call void ").append(f).append("()\n");
-                    } else err(tree);
-                } else err(tree);
+                    } else err(tree.get(2));
+                } else err(tree.get(0));
             } else primary = expToMultiIns(child.get(child.size() - 1), out, fromCond);
             if(primary != null && primary.isPtr) err(tree);
             Symbol temp = currentList.declareNewTemp();
