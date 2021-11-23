@@ -362,7 +362,7 @@ public class Compiler {
             } else if(symbol.type == Symbol.VarArray) {
                 SyntaxTree lVal = tree.get(0);
                 if(((ArraySymbol)symbol).dimensions.size() == lVal.getWidth()/3) {
-                    Symbol tempPtr = getArrayElementPtr(out, symbol, lVal);
+                    Symbol tempPtr = getArrayElementPtr(out, symbol, lVal,false);
                     out.append("store i32 ").append(ret).append(", i32* ").append(tempPtr).append('\n');
                 } else err(lVal);
             } else err(tree);
@@ -529,15 +529,14 @@ public class Compiler {
                                             params.get(i).get(0).get(0).get(0).get(0).get(0).type == SyntaxTree.LVal){
                                         SyntaxTree primaryExp = params.get(i).get(0).get(0).get(0).get(0);
                                         Symbol arrayName = currentList.getSymbol(primaryExp.get(0).get(0).content);
-                                        if(primaryExp.get(0).getWidth()/3 + ((ArraySymbol)f.param.get(i/2)).dimensions.size() == ((ArraySymbol)arrayName).dimensions.size()) {
-                                            ArraySymbol fp = (ArraySymbol)f.param.get(i/2), rp = (ArraySymbol)arrayName;
-                                            int fpSize = fp.dimensions.size(), rpSize= rp.dimensions.size();
-                                            for(int j = 1; fpSize-j>0;j++) {
-                                                if(!fp.dimensions.get(fpSize - j).equals(rp.dimensions.get(rpSize - j))) {
+                                        ArraySymbol fp = (ArraySymbol)f.param.get(i/2), rp = (ArraySymbol)arrayName;
+                                        int fpSize = fp.dimensions.size(), rpSize= rp.dimensions.size();
+                                        if(primaryExp.get(0).getWidth()/3 + fpSize == rpSize) {
+                                            for(int j = 1; fpSize-j>0;j++)
+                                                if(!fp.dimensions.get(fpSize - j).equals(rp.dimensions.get(rpSize - j)))
                                                     err(params.get(i));
-                                                }
-                                            }
-                                            call.append(i==0?"":", ").append(fp.getType(0)).append("* ").append(expToMultiIns(primaryExp,out,false));
+                                            call.append(i==0?"":", ").append(fp.getType(0)).append("* ");
+                                            call.append(getArrayElementPtr(out,arrayName,primaryExp.get(0),true));
                                         } else err(params.get(i));
                                     } else err(params.get(i));
                                 }
@@ -577,7 +576,7 @@ public class Compiler {
                     return new ExpReturnMsg(((ConstSymbol)symbol).constValue);
                 } else if (symbol != null && (symbol.type == Symbol.ConstArray||symbol.type == Symbol.VarArray)) {
                     SyntaxTree lVal = child.get(0);
-                    Symbol tempPtr =  getArrayElementPtr(out, symbol, lVal);
+                    Symbol tempPtr =  getArrayElementPtr(out, symbol, lVal, false);
                     Symbol tempVal = currentList.declareNewTemp();
                     out.append(tempVal).append(" = load i32, i32* ").append(tempPtr).append('\n');
                     if(((ArraySymbol)symbol).dimensions.size() == lVal.getWidth()/3) {
@@ -597,7 +596,7 @@ public class Compiler {
         return null;
     }
 
-    private Symbol getArrayElementPtr(StringBuilder out, Symbol symbol, SyntaxTree lVal) {
+    private Symbol getArrayElementPtr(StringBuilder out, Symbol symbol, SyntaxTree lVal, boolean fromParam) {
         StringBuilder getPtr = new StringBuilder();
         Symbol tempPtr = currentList.declareNewTemp();
         getPtr.append(tempPtr).append(" = getelementptr ").append(((ArraySymbol)symbol).getType(0)).append(", ");
@@ -606,7 +605,7 @@ public class Compiler {
             ExpReturnMsg ret = expToMultiIns(lVal.get(i),out,false);
             getPtr.append(", i32 ").append(ret);
         }
-        out.append(getPtr).append('\n');
+        out.append(getPtr).append(fromParam?", i32 0\n":"\n");
         return tempPtr;
     }
 
