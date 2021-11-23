@@ -166,17 +166,21 @@ public class Compiler {
                 first = false;
             }
         }
-        currentList.parent.declareNewFunction(funcName,params,isInt);
-        out.append(") {\n").append(inner).append(block(tree.get(tree.getWidth() - 1), true)).append("}\n");
+        FuncSymbol symbol = currentList.parent.declareNewFunction(funcName,params,isInt);
+        out.append(") {\n").append(inner).append(block(tree.get(tree.getWidth() - 1), symbol)).append("}\n");
         return out.toString();
     }
 
-    private String block(SyntaxTree tree, boolean isFunc) {
+    private String block(SyntaxTree tree, FuncSymbol func) {
         StringBuilder out = new StringBuilder();
-        if(!isFunc) currentList = new SymbolList(blocks++, currentList);
+        if(func == null) currentList = new SymbolList(blocks++, currentList);
         for (int i = 1; i < tree.getWidth() - 1; i++) {
             out.append(blockItem(tree.get(i)));
             if (tree.get(i).get(0).get(0).type == Token.RETURN) break;
+            else if(i == tree.getWidth() - 2 && func!=null) {
+                if(!func.isInt) out.append("ret void\n");
+                else err(tree.get(i).get(0).get(0));
+            }
         }
         currentList = currentList.parent;
         return out.toString();
@@ -220,7 +224,7 @@ public class Compiler {
                 out.append("br label ").append(currentWhile.labelExit).append('\n');
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.Block) {
-            out.append(block(tree.get(0),false));
+            out.append(block(tree.get(0),null));
         }
         return out.toString();
     }
