@@ -537,7 +537,7 @@ public class Compiler {
                                         if(primaryExp.get(0).getWidth()/3 + fpSize == rpSize) {
                                             for(int k = 1; fpSize-k>0;k++)
                                                 if(!fp.dimensions.get(fpSize - k).equals(rp.dimensions.get(rpSize - k)))
-                                                    err(params.get(k));
+                                                    err(params.get(j));
                                             call.append(j==0?"":", ").append(fp.getType(0)).append("* ");
                                             call.append(getArrayElementPtr(out,arrayName,primaryExp.get(0),true));
                                         } else err(params.get(j));
