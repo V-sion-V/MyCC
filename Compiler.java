@@ -154,7 +154,7 @@ public class Compiler {
                     ArrayList<Integer> dimensions = new ArrayList<>();
                     dimensions.add(0);
                     for(int i = 5;i<fParam.getWidth();i+=3) {
-                        ExpReturnMsg dimWidth = expToMultiIns(fParam.get(i).get(0),out,false);
+                        ExpReturnMsg dimWidth = expToMultiIns(fParam.get(i),out,false);
                         if(dimWidth!=null && dimWidth.isNumber()) {
                             dimensions.add(dimWidth.iVal);
                         } else err(fParam.get(i).get(0));
@@ -166,17 +166,23 @@ public class Compiler {
                 first = false;
             }
         }
-        currentList.parent.declareNewFunction(funcName,params,isInt);
-        out.append(") {\n").append(inner).append(block(tree.get(tree.getWidth() - 1), true)).append("}\n");
+        FuncSymbol func = currentList.parent.declareNewFunction(funcName,params,isInt);
+        out.append(") {\n").append(inner).append(block(tree.get(tree.getWidth() - 1), func)).append("}\n");
         return out.toString();
     }
 
-    private String block(SyntaxTree tree, boolean isFunc) {
+    private String block(SyntaxTree tree, FuncSymbol func) {
         StringBuilder out = new StringBuilder();
-        if(!isFunc) currentList = new SymbolList(blocks++, currentList);
-        for (int i = 1; i < tree.getWidth() - 1; i++) {
+        if(func==null) currentList = new SymbolList(blocks++, currentList);
+        int i;
+        for (i = 1; i < tree.getWidth() - 1; i++) {
             out.append(blockItem(tree.get(i)));
             if (tree.get(i).get(0).get(0).type == Token.RETURN) break;
+        }
+        if(func != null && tree.get(i).get(0).get(0).type != Token.RETURN) {
+            if(!func.isInt) {
+                out.append("ret void\n");
+            } else err(tree.get(i).get(0).get(0));
         }
         currentList = currentList.parent;
         return out.toString();
@@ -206,7 +212,7 @@ public class Compiler {
         } else if (tree.get(0).type == SyntaxTree.RETURN) {
             ret(tree, out);
         } else if (tree.get(0).type == SyntaxTree.Exp) {
-            expToMultiIns(tree.get(0).get(0), out, false);
+            expToMultiIns(tree.get(0), out, false);
         } else if (tree.get(0).type == SyntaxTree.IF) {
             ifBranch(tree, out);
         } else if (tree.get(0).type == SyntaxTree.WHILE) {
@@ -220,7 +226,7 @@ public class Compiler {
                 out.append("br label ").append(currentWhile.labelExit).append('\n');
             } else err(tree);
         } else if (tree.get(0).type == SyntaxTree.Block) {
-            out.append(block(tree.get(0),false));
+            out.append(block(tree.get(0),null));
         }
         return out.toString();
     }
@@ -230,7 +236,7 @@ public class Compiler {
         StringBuilder condIns = new StringBuilder();
         Symbol labelCond = currentList.declareNewTemp(),labelLoop = currentList.declareNewTemp(),labelExit = currentList.declareNewTemp();
         currentWhile = new WhileBlock(labelCond,labelExit,currentWhile);
-        ExpReturnMsg cond = expToMultiIns(tree.get(2).get(0), condIns, true);
+        ExpReturnMsg cond = expToMultiIns(tree.get(2), condIns, true);
         String loopStmt = stmt(tree.get(4));
         out.append("br label ").append(labelCond).append('\n');
         out.append('\n').append(labelCond.toString().substring(1)).append(":\n");
@@ -243,7 +249,7 @@ public class Compiler {
     }
 
     private void ifBranch(SyntaxTree tree, StringBuilder out) {
-        ExpReturnMsg cond = expToMultiIns(tree.get(2).get(0), out, true);
+        ExpReturnMsg cond = expToMultiIns(tree.get(2), out, true);
         Symbol labelIf = currentList.declareNewTemp(), labelElse = null;
         String ifStmt = stmt(tree.get(4)), elseStmt = null;
         if (tree.getWidth() > 5) {
@@ -312,7 +318,7 @@ public class Compiler {
         String lVal = tree.get(0).content;
         ArrayList<Integer> dimensions = new ArrayList<>();
         for(int i = 2; i<tree.getWidth()&&tree.get(i).type == SyntaxTree.ConstExp; i+=3){
-            ExpReturnMsg dimWidth = expToMultiIns(tree.get(i).get(0),out,false);
+            ExpReturnMsg dimWidth = expToMultiIns(tree.get(i),out,false);
             if(dimWidth!=null && dimWidth.isNumber()) {
                 dimensions.add(dimWidth.iVal);
             } else err(tree.get(i).get(0));
@@ -382,15 +388,24 @@ public class Compiler {
     private ExpReturnMsg expToMultiIns(SyntaxTree tree, StringBuilder out, boolean fromCond) {
         ArrayList<SyntaxTree> child = tree.getChild();
         if (tree.type == SyntaxTree.Exp || tree.type == SyntaxTree.ConstExp) {
-            return expToMultiIns(child.get(0), out, fromCond);
-        } else if (fromCond && (tree.type == SyntaxTree.LAndExp || tree.type == SyntaxTree.LOrExp)) {
+            return addExp(child.get(0), out, fromCond);
+        } else if (tree.type == SyntaxTree.Cond) {
+            return andOrExp(child.get(0), out);
+        } else err(tree);
+        return null;
+    }
+
+    private ExpReturnMsg andOrExp(SyntaxTree tree, StringBuilder out) {
+        if (tree.type == SyntaxTree.LAndExp || tree.type == SyntaxTree.LOrExp) {
             ArrayList<ExpReturnMsg> numbers = new ArrayList<>();
             ArrayList<Integer> calculators = new ArrayList<>();
-            for (int i = 0; i + 1 < child.size(); i += 2) {
-                numbers.add(expToMultiIns(child.get(i), out, true));
-                calculators.add(child.get(i + 1).type);
+            for (int i = 0; i + 1 < tree.getWidth(); i += 2) {
+                if(tree.type == SyntaxTree.LOrExp) numbers.add(andOrExp(tree.get(i), out));
+                else numbers.add(cmpExp(tree.get(i), out));
+                calculators.add(tree.get(i + 1).type);
             }
-            numbers.add(expToMultiIns(child.get(child.size() - 1), out, true));
+            if(tree.type == SyntaxTree.LOrExp) numbers.add(andOrExp(tree.get(tree.getWidth() - 1), out));
+            else numbers.add(cmpExp(tree.get(tree.getWidth() - 1), out));
             ExpReturnMsg last = toBoolean(numbers.get(0), out), now;
             Symbol temp;
             for (int i = 1; i < numbers.size(); i++) {
@@ -406,17 +421,25 @@ public class Compiler {
                 last = new ExpReturnMsg(temp, true);
             }
             return toBoolean(last, out);
-        } else if (fromCond && (tree.type == SyntaxTree.EqExp || tree.type == SyntaxTree.RelExp)) {
+        } else err(tree);
+        return null;
+    }
+
+    private ExpReturnMsg cmpExp(SyntaxTree tree, StringBuilder out) {
+        if (tree.type == SyntaxTree.EqExp || tree.type == SyntaxTree.RelExp) {
             if (tree.getWidth() == 1) {
-                return expToMultiIns(child.get(0), out, true);
+                if(tree.type == SyntaxTree.EqExp) return cmpExp(tree.get(0), out);
+                else addExp(tree.get(0), out, true);
             }
             ArrayList<ExpReturnMsg> numbers = new ArrayList<>();
             ArrayList<Integer> calculators = new ArrayList<>();
-            for (int i = 0; i + 1 < child.size(); i += 2) {
-                numbers.add(expToMultiIns(child.get(i), out, true));
-                calculators.add(child.get(i + 1).type);
+            for (int i = 0; i + 1 < tree.getWidth(); i += 2) {
+                if(tree.type == SyntaxTree.EqExp) numbers.add(cmpExp(tree.get(i), out));
+                else numbers.add(addExp(tree.get(i), out, true));
+                calculators.add(tree.get(i + 1).type);
             }
-            numbers.add(expToMultiIns(child.get(child.size() - 1), out, true));
+            if(tree.type == SyntaxTree.EqExp) numbers.add(cmpExp(tree.get(tree.getWidth() - 1), out));
+            else numbers.add(addExp(tree.get(tree.getWidth() - 1), out, true));
             ExpReturnMsg last = toInt(numbers.get(0), out), now;
             Symbol temp;
             for (int i = 1; i < numbers.size(); i++) {
@@ -437,14 +460,55 @@ public class Compiler {
                 last = new ExpReturnMsg(temp, true);
             }
             return toBoolean(last, out);
-        } else if (tree.type == SyntaxTree.MulExp || tree.type == SyntaxTree.AddExp) {
+        } else err(tree);
+        return null;
+    }
+
+    private ExpReturnMsg addExp(SyntaxTree tree, StringBuilder out, boolean fromCond) {
+        if (tree.type == SyntaxTree.AddExp) {
             ArrayList<ExpReturnMsg> numbers = new ArrayList<>();
             ArrayList<Integer> calculators = new ArrayList<>();
-            for (int i = 0; i + 1 < child.size(); i += 2) {
-                numbers.add(expToMultiIns(child.get(i), out, fromCond));
-                calculators.add(child.get(i + 1).type);
+            for (int i = 0; i + 1 < tree.getWidth(); i += 2) {
+                numbers.add(mulExp(tree.get(i), out, fromCond));
+                calculators.add(tree.get(i + 1).type);
             }
-            numbers.add(expToMultiIns(child.get(child.size() - 1), out, fromCond));
+            numbers.add(mulExp(tree.get(tree.getWidth() - 1), out, fromCond));
+            ExpReturnMsg last, now;
+            Symbol temp;
+            int startAt = 1;
+            if (numbers.get(0).isNumber()) {
+                int startNumber = numbers.get(0).iVal;
+                for (int i = 1; i < numbers.size() && numbers.get(i).isNumber(); i++) {
+                    if (calculators.get(i - 1) == Token.PLUS) startNumber += numbers.get(i).iVal;
+                    else startNumber -= numbers.get(i).iVal;
+                    startAt = i + 1;
+                }
+                last = new ExpReturnMsg(startNumber);
+            } else last = numbers.get(0);
+            last = toInt(last, out);
+            for (int i = startAt; i < numbers.size(); i++) {
+                temp = currentList.declareNewTemp();
+                now = toInt(numbers.get(i), out);
+                out.append(temp).append(" = ");
+                if (calculators.get(i - 1) == Token.PLUS) out.append("add");
+                else out.append("sub");
+                out.append(" i32 ").append(last).append(", ").append(now).append('\n');
+                last = new ExpReturnMsg(temp, false);
+            }
+            return last;
+        } else err(tree);
+        return null;
+    }
+
+    private ExpReturnMsg mulExp(SyntaxTree tree, StringBuilder out, boolean fromCond) {
+        if (tree.type == SyntaxTree.MulExp) {
+            ArrayList<ExpReturnMsg> numbers = new ArrayList<>();
+            ArrayList<Integer> calculators = new ArrayList<>();
+            for (int i = 0; i + 1 < tree.getWidth(); i += 2) {
+                numbers.add(unaryExp(tree.get(i), out, fromCond));
+                calculators.add(tree.get(i + 1).type);
+            }
+            numbers.add(unaryExp(tree.get(tree.getWidth() - 1), out, fromCond));
             ExpReturnMsg last, now;
             Symbol temp;
             int startAt = 1;
@@ -462,8 +526,6 @@ public class Compiler {
                             if (numbers.get(i).iVal == 0) err(tree);
                             startNumber %= numbers.get(i).iVal;
                         }
-                        case Token.PLUS -> startNumber += numbers.get(i).iVal;
-                        case Token.MINUS -> startNumber -= numbers.get(i).iVal;
                     }
                     startAt = i + 1;
                 }
@@ -487,20 +549,23 @@ public class Compiler {
                         if (now.toString().equals("0")) err(tree);
                         out.append("srem");
                     }
-                    case Token.PLUS -> out.append("add");
-                    case Token.MINUS -> out.append("sub");
                 }
                 out.append(" i32 ").append(last).append(", ").append(now).append('\n');
                 last = new ExpReturnMsg(temp, false);
             }
             return last;
-        } else if (tree.type == SyntaxTree.UnaryExp) {
+        } else err(tree);
+        return null;
+    }
+
+    private ExpReturnMsg unaryExp(SyntaxTree tree, StringBuilder out, boolean fromCond) {
+        if (tree.type == SyntaxTree.UnaryExp) {
             int sgn = 1, not = 0;
-            for (int i = 0; i + 1 < child.size(); i++) {
-                if (child.get(i).type != Token.PLUS) {
-                    if (child.get(i).type == Token.MINUS) sgn *= -1;
-                    else if (child.get(i).type == Token.NOT && fromCond) not++;
-                    else if (child.get(i).type == Token.NOT) err(tree);
+            for (int i = 0; i + 1 < tree.getWidth(); i++) {
+                if (tree.get(i).type != Token.PLUS) {
+                    if (tree.get(i).type == Token.MINUS) sgn *= -1;
+                    else if (tree.get(i).type == Token.NOT && fromCond) not++;
+                    else if (tree.get(i).type == Token.NOT) err(tree);
                     else break;
                 }
             }
@@ -549,7 +614,7 @@ public class Compiler {
                         else out.append("call void ").append(f).append("()\n");
                     } else err(tree);
                 } else err(tree);
-            } else primary = expToMultiIns(child.get(child.size() - 1), out, fromCond);
+            } else primary = primaryExp(tree.get(tree.getWidth() - 1), out, fromCond);
             if(primary != null && primary.isPtr) err(tree);
             Symbol temp = currentList.declareNewTemp();
             if (not == 0) {
@@ -564,18 +629,23 @@ public class Compiler {
                 else out.append(temp).append(" = icmp eq i32 0, ").append(primary).append('\n');
                 return new ExpReturnMsg(temp, true);
             }
-        } else if (tree.type == SyntaxTree.PrimaryExp) {
-            if (child.get(0).type == SyntaxTree.NUM) {
-                return new ExpReturnMsg(Integer.parseInt(child.get(0).content));
-            } else if (child.get(0).type == Token.LP) {
-                return expToMultiIns(child.get(1), out, fromCond);
+        } else err(tree);
+        return null;
+    }
+
+    private ExpReturnMsg primaryExp(SyntaxTree tree, StringBuilder out, boolean fromCond) {
+        if (tree.type == SyntaxTree.PrimaryExp) {
+            if (tree.get(0).type == SyntaxTree.NUM) {
+                return new ExpReturnMsg(Integer.parseInt(tree.get(0).content));
+            } else if (tree.get(0).type == Token.LP) {
+                return expToMultiIns(tree.get(1), out, fromCond);
             } else {
-                String ident = child.get(0).get(0).content;
+                String ident = tree.get(0).get(0).content;
                 Symbol symbol = currentList.getSymbol(ident);
                 if (symbol != null && symbol.type == Symbol.Const) {
                     return new ExpReturnMsg(((ConstSymbol)symbol).constValue);
                 } else if (symbol != null && (symbol.type == Symbol.ConstArray||symbol.type == Symbol.VarArray)) {
-                    SyntaxTree lVal = child.get(0);
+                    SyntaxTree lVal = tree.get(0);
                     Symbol tempPtr =  getArrayElementPtr(out, symbol, lVal, false);
                     Symbol tempVal = currentList.declareNewTemp();
                     out.append(tempVal).append(" = load i32, i32* ").append(tempPtr).append('\n');
