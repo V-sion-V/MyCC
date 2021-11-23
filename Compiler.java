@@ -179,7 +179,7 @@ public class Compiler {
             if (tree.get(i).get(0).get(0).type == Token.RETURN) break;
             else if(i == tree.getWidth() - 2 && func!=null) {
                 if(!func.isInt) out.append("ret void\n");
-                else err(tree.get(i).get(0).get(0));
+                else out.append("ret i32 0\n");
             }
         }
         currentList = currentList.parent;
