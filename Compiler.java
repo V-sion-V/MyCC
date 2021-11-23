@@ -499,8 +499,8 @@ public class Compiler {
             }
             return last;
         } else if (tree.type == SyntaxTree.UnaryExp) {
-            int sgn = 1, not = 0;
-            for (int i = 0; i + 1 < child.size(); i++) {
+            int sgn = 1, not = 0, i;
+            for (i = 0; i + 1 < child.size(); i++) {
                 if (child.get(i).type != Token.PLUS) {
                     if (child.get(i).type == Token.MINUS) sgn *= -1;
                     else if (child.get(i).type == Token.NOT && fromCond) not++;
@@ -511,48 +511,48 @@ public class Compiler {
             ExpReturnMsg primary;
             if (tree.get(tree.getWidth() - 1).type == Token.RP) {
                 primary = new ExpReturnMsg(currentList.declareNewTemp());
-                String funcName = tree.get(0).content;
+                String funcName = tree.get(i).content;
                 FuncSymbol f = (FuncSymbol) currentList.getSymbol(funcName);
                 if(f!=null) {
                     StringBuilder call = new StringBuilder();
-                    if(tree.get(2).type == SyntaxTree.FuncRParams) {
+                    if(tree.get(i+2).type == SyntaxTree.FuncRParams) {
                         if(f.isInt) call.append(primary).append(" = call i32 ").append(f).append("(");
                         else call.append("call void ").append(f).append("(");
-                        SyntaxTree params = tree.get(2);
-                        for(int i = 0;i<params.getWidth();i+=2) {
-                            if(f.param.size() >= i/2+1) {
-                                if(f.param.get(i/2).type == Symbol.Var || f.param.get(i/2).type == Symbol.Const) {
-                                    ExpReturnMsg param = expToMultiIns(params.get(i),out,false);
-                                    call.append(i==0?"":", ").append("i32 ").append(param);
+                        SyntaxTree params = tree.get(i+2);
+                        for(int j = 0;j<params.getWidth();j+=2) {
+                            if(f.param.size() >= j/2+1) {
+                                if(f.param.get(j/2).type == Symbol.Var || f.param.get(j/2).type == Symbol.Const) {
+                                    ExpReturnMsg param = expToMultiIns(params.get(j),out,false);
+                                    call.append(j==0?"":", ").append("i32 ").append(param);
                                 } else {
-                                    if(params.get(i).getWidth() == 1 &&
-                                            params.get(i).get(0).getWidth() == 1 &&
-                                            params.get(i).get(0).get(0).getWidth() == 1 &&
-                                            params.get(i).get(0).get(0).get(0).getWidth() == 1 &&
-                                            params.get(i).get(0).get(0).get(0).get(0).getWidth() == 1 &&
-                                            params.get(i).get(0).get(0).get(0).get(0).get(0).type == SyntaxTree.LVal){
-                                        SyntaxTree primaryExp = params.get(i).get(0).get(0).get(0).get(0);
+                                    if(params.get(j).getWidth() == 1 &&
+                                            params.get(j).get(0).getWidth() == 1 &&
+                                            params.get(j).get(0).get(0).getWidth() == 1 &&
+                                            params.get(j).get(0).get(0).get(0).getWidth() == 1 &&
+                                            params.get(j).get(0).get(0).get(0).get(0).getWidth() == 1 &&
+                                            params.get(j).get(0).get(0).get(0).get(0).get(0).type == SyntaxTree.LVal){
+                                        SyntaxTree primaryExp = params.get(j).get(0).get(0).get(0).get(0);
                                         Symbol arrayName = currentList.getSymbol(primaryExp.get(0).get(0).content);
-                                        ArraySymbol fp = (ArraySymbol)f.param.get(i/2), rp = (ArraySymbol)arrayName;
+                                        ArraySymbol fp = (ArraySymbol)f.param.get(j/2), rp = (ArraySymbol)arrayName;
                                         int fpSize = fp.dimensions.size(), rpSize= rp.dimensions.size();
                                         if(primaryExp.get(0).getWidth()/3 + fpSize == rpSize) {
-                                            for(int j = 1; fpSize-j>0;j++)
-                                                if(!fp.dimensions.get(fpSize - j).equals(rp.dimensions.get(rpSize - j)))
-                                                    err(params.get(i));
-                                            call.append(i==0?"":", ").append(fp.getType(0)).append("* ");
+                                            for(int k = 1; fpSize-k>0;k++)
+                                                if(!fp.dimensions.get(fpSize - k).equals(rp.dimensions.get(rpSize - k)))
+                                                    err(params.get(k));
+                                            call.append(j==0?"":", ").append(fp.getType(0)).append("* ");
                                             call.append(getArrayElementPtr(out,arrayName,primaryExp.get(0),true));
-                                        } else err(params.get(i));
-                                    } else err(params.get(i));
+                                        } else err(params.get(j));
+                                    } else err(params.get(j));
                                 }
-                            } else err(params.get(i));
+                            } else err(params.get(j));
                         }
                         call.append(")\n");
                         out.append(call);
                     } else if(f.param.size()==0) {
                         if(f.isInt) out.append(primary).append(" = call i32 ").append(f).append("()\n");
                         else out.append("call void ").append(f).append("()\n");
-                    } else err(tree.get(2));
-                } else err(tree.get(0));
+                    } else err(tree.get(i+2));
+                } else err(tree.get(i));
             } else primary = expToMultiIns(child.get(child.size() - 1), out, fromCond);
             if(primary != null && primary.isPtr) err(tree);
             Symbol temp = currentList.declareNewTemp();
