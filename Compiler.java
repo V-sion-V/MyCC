@@ -231,15 +231,12 @@ public class Compiler {
 
 
     private void whileLoop(SyntaxTree tree, StringBuilder out) {
-        StringBuilder condIns = new StringBuilder();
         Symbol labelCond = currentList.declareNewTemp(),labelLoop = currentList.declareNewTemp(),labelExit = currentList.declareNewTemp();
         currentWhile = new WhileBlock(labelCond,labelExit,currentWhile);
-        ExpReturnMsg cond = expToMultiIns(tree.get(2).get(0), condIns, true);
         String loopStmt = stmt(tree.get(4));
         out.append("br label ").append(labelCond).append("\n");
         out.append('\n').append(labelCond.toString().substring(1)).append(":\n\t");
-        out.append(condIns);
-        out.append("br i1 ").append(cond).append(", label ").append(labelLoop).append(", label ").append(labelExit).append("\n");
+        orShortCut(tree.get(2).get(0),out,labelLoop,labelExit);
         out.append('\n').append(labelLoop.toString().substring(1)).append(":\n\t");
         out.append(loopStmt).append("br label ").append(labelCond).append("\n");
         out.append('\n').append(labelExit.toString().substring(1)).append(":\n\t");
@@ -247,7 +244,6 @@ public class Compiler {
     }
 
     private void ifBranch(SyntaxTree tree, StringBuilder out) {
-        ExpReturnMsg cond = expToMultiIns(tree.get(2).get(0), out, true);
         Symbol labelIf = currentList.declareNewTemp(), labelElse = null;
         String ifStmt = stmt(tree.get(4)), elseStmt = null;
         if (tree.getWidth() > 5) {
@@ -255,9 +251,7 @@ public class Compiler {
             elseStmt = stmt(tree.get(6));
         }
         Symbol labelExit = currentList.declareNewTemp();
-        out.append("br i1 ").append(cond).append(", label ").append(labelIf).append(", label ");
-        if (labelElse == null) out.append(labelExit).append('\n');
-        else out.append(labelElse).append('\n');
+        orShortCut(tree.get(2).get(0),out,labelIf,labelElse==null?labelExit:labelElse);
         out.append('\n').append(labelIf.toString().substring(1)).append(":\n\t");
         out.append(ifStmt).append("br label ").append(labelExit).append('\n');
         if (elseStmt != null && labelElse != null) {
@@ -383,32 +377,39 @@ public class Compiler {
         }
     }
 
+    private void orShortCut(SyntaxTree tree, StringBuilder out, Symbol success, Symbol fail) {
+        for (int i = 0; i < tree.getWidth(); i += 2) {
+            if(i+2< tree.getWidth()) {
+                Symbol temp = currentList.declareNewTemp();
+                andShortCut(tree.get(i),out,success,temp);
+                out.append('\n').append(temp.toString().substring(1)).append(":\n\t");
+            } else {
+                andShortCut(tree.get(i),out,success,fail);
+            }
+        }
+    }
+
+    private void andShortCut(SyntaxTree tree, StringBuilder out, Symbol success, Symbol fail) {
+        for (int i = 0; i < tree.getWidth(); i += 2) {
+            if(i+2 < tree.getWidth()) {
+                Symbol temp = currentList.declareNewTemp();
+                singleCond(tree.get(i),out,temp,fail);
+                out.append('\n').append(temp.toString().substring(1)).append(":\n\t");
+            } else {
+                singleCond(tree.get(i),out,success,fail);
+            }
+        }
+    }
+
+    private void singleCond(SyntaxTree tree, StringBuilder out, Symbol success, Symbol fail) {
+        ExpReturnMsg ret = expToMultiIns(tree,out,true);
+        if(ret!=null) out.append("br i1 ").append(ret).append(", label ").append(success).append(", label ").append(fail).append("\n");
+        else err(tree);
+    }
+
     private ExpReturnMsg expToMultiIns(SyntaxTree tree, StringBuilder out, boolean fromCond) {
         if (tree.type == SyntaxTree.Exp || tree.type == SyntaxTree.ConstExp) {
             return expToMultiIns(tree.get(0), out, fromCond);
-        } else if (fromCond && (tree.type == SyntaxTree.LAndExp || tree.type == SyntaxTree.LOrExp)) {
-            ArrayList<ExpReturnMsg> numbers = new ArrayList<>();
-            ArrayList<Integer> calculators = new ArrayList<>();
-            for (int i = 0; i + 1 < tree.getWidth(); i += 2) {
-                numbers.add(expToMultiIns(tree.get(i), out, true));
-                calculators.add(tree.get(i + 1).type);
-            }
-            numbers.add(expToMultiIns(tree.get(tree.getWidth() - 1), out, true));
-            ExpReturnMsg last = toBoolean(numbers.get(0), out), now;
-            Symbol temp;
-            for (int i = 1; i < numbers.size(); i++) {
-                temp = currentList.declareNewTemp();
-                now = toBoolean(numbers.get(i), out);
-                int sep = calculators.get(i - 1);
-                out.append(temp).append(" = ");
-                switch (sep) {
-                    case Token.AND -> out.append("and");
-                    case Token.OR -> out.append("or");
-                }
-                out.append(" i1 ").append(last).append(", ").append(now).append("\n\t");
-                last = new ExpReturnMsg(temp, true);
-            }
-            return toBoolean(last, out);
         } else if (fromCond && (tree.type == SyntaxTree.EqExp || tree.type == SyntaxTree.RelExp)) {
             if (tree.getWidth() == 1) {
                 return expToMultiIns(tree.get(0), out, true);
