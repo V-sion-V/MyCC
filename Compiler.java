@@ -403,7 +403,10 @@ public class Compiler {
 
     private void singleCond(SyntaxTree tree, StringBuilder out, Symbol success, Symbol fail) {
         ExpReturnMsg ret = expToMultiIns(tree,out,true);
-        if(ret!=null) out.append("br i1 ").append(ret).append(", label ").append(success).append(", label ").append(fail).append("\n");
+        if(ret!=null) {
+            ret = toBoolean(ret,out);
+            out.append("br i1 ").append(ret).append(", label ").append(success).append(", label ").append(fail).append("\n");
+        }
         else err(tree);
     }
 
