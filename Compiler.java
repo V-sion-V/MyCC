@@ -626,7 +626,7 @@ public class Compiler {
     }
 
     private ExpReturnMsg toInt(ExpReturnMsg x, StringBuilder out) {
-        if (!x.isSymbol()) {
+        if (x.isBooleanSymbol()) {
             Symbol temp = currentList.declareNewTemp();
             out.append(temp).append(" = zext i1 ").append(x).append(" to i32").append("\n\t");
             return new ExpReturnMsg(temp, false);
